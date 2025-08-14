@@ -55,8 +55,8 @@ export interface WebsiteData {
 export const defaultData: WebsiteData = {
   personalInfo: {
     name: "Zhongquan Cheng",
-    title: "Computer Science Student at Syracuse University",
-    bio: "I'm a Computer Science student passionate about data science, application development, and research. With experience in various programming languages and technologies, I've worked on projects ranging from VR game development to machine learning applications. Currently pursuing opportunities in software engineering and data science.",
+    title: "Master's Student in Computer Science at Washington University in St. Louis",
+    bio: "I'm a Master's student in Computer Science at Washington University in St. Louis, passionate about data science, application development, and research. With experience in various programming languages and technologies, I've worked on projects ranging from VR game development to machine learning applications. Currently pursuing advanced studies in software engineering and data science.",
     location: "St. Louis, Missouri",
     email: "z.cheng@wustl.edu",
     phone: "315-317-5618",
