@@ -181,7 +181,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-8 fade-in-up">
             <div className="space-y-4">
-              <h1 className="text-5xl md:text-6xl font-bold text-gradient leading-tight">
+              <h1 className="text-5xl md:text-6xl font-bold text-gradient-enhanced leading-tight">
                 Hi, I'm <span className="text-foreground">{data.personalInfo.name}</span>
               </h1>
               <p className="text-xl md:text-2xl text-muted-foreground font-light">
@@ -193,13 +193,13 @@ export default function Home() {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button asChild size="lg" className="button-3d shadow-glow border-primary/20 text-lg px-8 py-6">
+              <Button asChild size="lg" className="button-enhanced shadow-glow border-primary/20 text-lg px-8 py-6">
                 <Link href="#contact" className="group">
                   Get In Touch
                   <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
-              <Button variant="outline" asChild size="lg" className="button-3d shadow-glow border-primary/20 text-lg px-8 py-6">
+              <Button variant="outline" asChild size="lg" className="button-enhanced shadow-glow border-primary/20 text-lg px-8 py-6">
                 <Link href="#projects" className="group">
                   View Projects
                   <ArrowUpRight className="ml-2 h-5 w-5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
@@ -220,9 +220,9 @@ export default function Home() {
           </div>
           
           <div className="flex justify-center fade-in-up stagger-2">
-            <div className="relative">
+            <div className="profile-image-wrapper float">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-2xl scale-110"></div>
-              <div className="relative w-80 h-80 rounded-full overflow-hidden border-4 border-primary/30 shadow-2xl ring-4 ring-primary/10">
+              <div className="relative w-80 h-80 rounded-full overflow-hidden border-4 border-primary/30 shadow-2xl ring-4 ring-primary/10 pulse-glow">
                 {data.personalInfo.photo ? (
                   <img
                     src={data.personalInfo.photo}
@@ -243,7 +243,7 @@ export default function Home() {
       {/* About Section */}
       <section id="about" ref={sectionRefs.about} className="container py-24 space-y-12">
         <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold text-gradient">
+          <h2 className="text-4xl md:text-5xl font-bold text-gradient-enhanced">
             About Me
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -253,14 +253,14 @@ export default function Home() {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <Card className="glass-card card-hover shadow-glow h-full">
+            <Card className="glass-enhanced card-hover card-shimmer shadow-glow h-full">
               <CardContent className="p-8">
                 <div className="space-y-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center pulse-glow">
                       <Code className="h-6 w-6 text-primary" />
                     </div>
-                    <h3 className="text-2xl font-semibold">Background</h3>
+                    <h3 className="text-2xl font-semibold text-gradient-enhanced">Background</h3>
                   </div>
                   <p className="text-lg text-muted-foreground leading-relaxed">
                     {data.personalInfo.bio}
@@ -271,14 +271,14 @@ export default function Home() {
           </div>
           
           <div className="space-y-6">
-            <Card className="glass-card card-hover shadow-glow">
+            <Card className="glass-enhanced card-hover card-shimmer shadow-glow">
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center pulse-glow">
                       <Mail className="h-5 w-5 text-primary" />
                     </div>
-                    <h3 className="text-xl font-semibold">Contact Info</h3>
+                    <h3 className="text-xl font-semibold text-gradient-enhanced">Contact Info</h3>
                   </div>
                   
                   <div className="space-y-3">
@@ -322,7 +322,7 @@ export default function Home() {
       {/* Experience Tabs */}
       <section id="experience" ref={sectionRefs.experience} className="container py-24 space-y-12">
         <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold text-gradient">
+          <h2 className="text-4xl md:text-5xl font-bold text-gradient-enhanced">
             Experience
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -417,7 +417,7 @@ export default function Home() {
       {/* Projects Section */}
       <section id="projects" ref={sectionRefs.projects} className="container py-24 space-y-12">
         <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold text-gradient">
+          <h2 className="text-4xl md:text-5xl font-bold text-gradient-enhanced">
             Projects
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -429,7 +429,7 @@ export default function Home() {
           {data.projects.map((project, index) => (
             <Card
               key={project.id}
-              className="glass-card card-hover shadow-glow overflow-hidden fade-in-up group h-full"
+              className="project-card card-hover shadow-glow overflow-hidden fade-in-up group h-full"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent"></div>
@@ -465,7 +465,7 @@ export default function Home() {
       {/* Skills Section */}
       <section id="skills" ref={sectionRefs.skills} className="container py-24 space-y-12">
         <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold text-gradient">
+          <h2 className="text-4xl md:text-5xl font-bold text-gradient-enhanced">
             Skills
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -474,14 +474,14 @@ export default function Home() {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="glass-card card-hover shadow-glow">
+          <Card className="glass-enhanced card-hover card-shimmer shadow-glow">
             <CardContent className="p-8">
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center pulse-glow">
                     <Code className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-2xl font-semibold">Programming Languages</h3>
+                  <h3 className="text-2xl font-semibold text-gradient-enhanced">Programming Languages</h3>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {data.skills
@@ -489,7 +489,7 @@ export default function Home() {
                     .map((skill) => (
                       <div
                         key={skill.id}
-                        className="flex items-center gap-3 p-4 glass-effect rounded-xl border border-primary/20 shadow-glow card-hover group"
+                        className="skill-card flex items-center gap-3 p-4 rounded-xl border border-primary/20 shadow-glow group"
                       >
                         <div className="text-primary group-hover:scale-110 transition-transform">
                           {skillIcons[skill.name] || <Code className="h-5 w-5" />}
@@ -502,14 +502,14 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card card-hover shadow-glow">
+          <Card className="glass-enhanced card-hover card-shimmer shadow-glow">
             <CardContent className="p-8">
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center pulse-glow">
                     <Cpu className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-2xl font-semibold">Tools & Technologies</h3>
+                  <h3 className="text-2xl font-semibold text-gradient-enhanced">Tools & Technologies</h3>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {data.skills
@@ -517,7 +517,7 @@ export default function Home() {
                     .map((skill) => (
                       <div
                         key={skill.id}
-                        className="flex items-center gap-3 p-4 glass-effect rounded-xl border border-primary/20 shadow-glow card-hover group"
+                        className="skill-card flex items-center gap-3 p-4 rounded-xl border border-primary/20 shadow-glow group"
                       >
                         <div className="text-primary group-hover:scale-110 transition-transform">
                           {skillIcons[skill.name] || <Server className="h-5 w-5" />}
@@ -534,22 +534,22 @@ export default function Home() {
 
       {/* Languages */}
       <section className="container py-16">
-        <Card className="glass-card card-hover shadow-glow max-w-2xl mx-auto">
+        <Card className="glass-enhanced card-hover card-shimmer shadow-glow max-w-2xl mx-auto pulse-glow">
           <CardContent className="p-8">
             <div className="text-center space-y-6">
               <div className="flex items-center justify-center gap-3">
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center pulse-glow">
                   <Globe className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-2xl font-semibold">Languages</h3>
+                <h3 className="text-2xl font-semibold text-gradient-enhanced">Languages</h3>
               </div>
               <div className="flex justify-center gap-6">
                 {data.languages.map((language) => (
                   <div
                     key={language.id}
-                    className="glass-effect px-6 py-4 rounded-xl shadow-glow border border-primary/20 card-hover text-center min-w-[120px]"
+                    className="skill-card px-6 py-4 rounded-xl shadow-glow border border-primary/20 text-center min-w-[120px]"
                   >
-                    <p className="font-semibold text-gradient text-lg">{language.name}</p>
+                    <p className="font-semibold text-gradient-enhanced text-lg">{language.name}</p>
                     <p className="text-sm text-muted-foreground">{language.level}</p>
                   </div>
                 ))}
@@ -562,7 +562,7 @@ export default function Home() {
       {/* Contact Section */}
       <section id="contact" ref={sectionRefs.contact} className="container py-24 space-y-12">
         <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold text-gradient">
+          <h2 className="text-4xl md:text-5xl font-bold text-gradient-enhanced">
             Get In Touch
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -571,14 +571,14 @@ export default function Home() {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <Card className="glass-card card-hover shadow-glow">
+          <Card className="glass-enhanced card-hover card-shimmer shadow-glow">
             <CardContent className="p-8">
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center pulse-glow">
                     <Mail className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-2xl font-semibold">Contact Information</h3>
+                  <h3 className="text-2xl font-semibold text-gradient-enhanced">Contact Information</h3>
                 </div>
                 
                 <p className="text-lg text-muted-foreground leading-relaxed">
@@ -603,14 +603,14 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card card-hover shadow-glow">
+          <Card className="glass-enhanced card-hover card-shimmer shadow-glow">
             <CardContent className="p-8">
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center pulse-glow">
                     <Send className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-2xl font-semibold">Send a Message</h3>
+                  <h3 className="text-2xl font-semibold text-gradient-enhanced">Send a Message</h3>
                 </div>
                 
                 <form className="space-y-6" onSubmit={handleSubmit}>
@@ -664,7 +664,7 @@ export default function Home() {
                   <Button
                     type="submit"
                     size="lg"
-                    className="w-full button-3d shadow-glow border-primary/20 text-lg py-6"
+                    className="w-full button-enhanced shadow-glow border-primary/20 text-lg py-6"
                     disabled={isFormSubmitting}
                   >
                     {isFormSubmitting ? (
