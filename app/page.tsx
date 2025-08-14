@@ -26,8 +26,6 @@ import {
   Send,
 } from "lucide-react"
 import Link from "next/link"
-import { TypingAnimation } from "@/components/typing-animation"
-import { Console } from "@/components/console"
 import { type WebsiteData, defaultData } from "@/lib/default-data"
 
 // Format date from YYYY-MM to Month Year
@@ -55,10 +53,7 @@ const skillIcons: Record<string, React.ReactNode> = {
 }
 
 export default function Home() {
-  const [data, setData] = useState<WebsiteData>(defaultData)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [isConsoleOpen, setIsConsoleOpen] = useState(false)
-  const [showTypingAnimation, setShowTypingAnimation] = useState(true)
+  const data = defaultData
   const [activeSection, setActiveSection] = useState("")
   const [isFormSubmitting, setIsFormSubmitting] = useState(false)
   const [formSuccess, setFormSuccess] = useState(false)
@@ -72,23 +67,6 @@ export default function Home() {
     contact: useRef<HTMLElement>(null),
   }
 
-  // Load data from API on initial render
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch("/api/website-data")
-        const result = await response.json()
-
-        if (result.data) {
-          setData(result.data)
-        }
-      } catch (error) {
-        console.error("Error loading data:", error)
-      }
-    }
-
-    fetchData()
-  }, [])
 
   // Intersection observer for active section
   useEffect(() => {
@@ -131,8 +109,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-background noise-bg grid-bg">
-      {/* Console */}
-      <Console isOpen={isConsoleOpen} onClose={() => setIsConsoleOpen(false)} />
 
       {/* Header */}
       <header className="sticky top-0 z-10 w-full border-b border-border/30 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
@@ -162,9 +138,6 @@ export default function Home() {
               className="hidden md:inline-flex button-3d shadow-glow border-primary/20"
             >
               <Link href="#contact">Get in touch</Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild className="font-mono">
-              <Link href="/admin">Admin</Link>
             </Button>
           </div>
         </div>
