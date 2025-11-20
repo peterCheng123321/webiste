@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useEffect, useState, useRef } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -24,42 +22,41 @@ import {
   FileCode,
   Globe,
   Send,
+  ExternalLink,
+  Layers,
+  Sparkles,
+  Zap,
+  Menu
 } from "lucide-react"
 import Link from "next/link"
-import { type WebsiteData, defaultData } from "@/lib/default-data"
-
-// Format date from YYYY-MM to Month Year
-const formatDate = (dateString: string) => {
-  if (!dateString) return "Present"
-
-  const date = new Date(dateString)
-  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" })
-}
+import { defaultData } from "@/lib/default-data"
 
 // Skill icons mapping
 const skillIcons: Record<string, React.ReactNode> = {
-  Python: <FileCode className="h-5 w-5" />,
-  Java: <Code className="h-5 w-5" />,
-  R: <Database className="h-5 w-5" />,
-  "C#": <Braces className="h-5 w-5" />,
-  "HTML/CSS": <Code className="h-5 w-5" />,
-  JavaScript: <Code className="h-5 w-5" />,
-  SQL: <Database className="h-5 w-5" />,
-  Unity: <Globe className="h-5 w-5" />,
-  "Data Analysis": <Server className="h-5 w-5" />,
-  "Machine Learning": <Cpu className="h-5 w-5" />,
-  "Statistical Analysis": <Cpu className="h-5 w-5" />,
-  Git: <Terminal className="h-5 w-5" />,
+  Python: <FileCode className="h-8 w-8" />,
+  Java: <Code className="h-8 w-8" />,
+  R: <Database className="h-8 w-8" />,
+  "C#": <Braces className="h-8 w-8" />,
+  "HTML/CSS": <Code className="h-8 w-8" />,
+  JavaScript: <Code className="h-8 w-8" />,
+  SQL: <Database className="h-8 w-8" />,
+  Unity: <Globe className="h-8 w-8" />,
+  "Data Analysis": <Server className="h-8 w-8" />,
+  "Machine Learning": <Cpu className="h-8 w-8" />,
+  "Statistical Analysis": <Cpu className="h-8 w-8" />,
+  Git: <Terminal className="h-8 w-8" />,
 }
 
 export default function Home() {
   const data = defaultData
-  const [activeSection, setActiveSection] = useState("")
+  const [activeSection, setActiveSection] = useState("hero")
   const [isFormSubmitting, setIsFormSubmitting] = useState(false)
   const [formSuccess, setFormSuccess] = useState(false)
   const [formData, setFormData] = useState({ name: "", email: "", message: "" })
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 
   const sectionRefs = {
+    hero: useRef<HTMLElement>(null),
     about: useRef<HTMLElement>(null),
     experience: useRef<HTMLElement>(null),
     projects: useRef<HTMLElement>(null),
@@ -67,6 +64,25 @@ export default function Home() {
     contact: useRef<HTMLElement>(null),
   }
 
+  const heroHighlights = [
+    { id: "research", label: "AI Research", value: "AI for Health Institute", desc: "Graduate Researcher" },
+  ]
+
+  const heroStats = [
+    { id: "stack", title: "Full Stack", metric: "React · Node · SQL", icon: Code },
+    { id: "vision", title: "Vision Research", metric: "Sensors · ML", icon: Cpu },
+  ]
+
+  const linkedinProfileUrl = data.personalInfo.linkedin || "https://www.linkedin.com/in/zhongquan-cheng/"
+
+  // Mouse follow effect
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY })
+    }
+    window.addEventListener("mousemove", handleMouseMove)
+    return () => window.removeEventListener("mousemove", handleMouseMove)
+  }, [])
 
   // Intersection observer for active section
   useEffect(() => {
@@ -78,7 +94,7 @@ export default function Home() {
           }
         })
       },
-      { rootMargin: "-100px 0px -100px 0px", threshold: 0.1 },
+      { rootMargin: "-20% 0px -50% 0px", threshold: 0.1 },
     )
 
     Object.values(sectionRefs).forEach((ref) => ref.current && observer.observe(ref.current))
@@ -91,13 +107,10 @@ export default function Home() {
     e.preventDefault()
     setIsFormSubmitting(true)
 
-    // Simulate form submission
     setTimeout(() => {
       setIsFormSubmitting(false)
       setFormSuccess(true)
       setFormData({ name: "", email: "", message: "" })
-
-      // Reset success message after 5 seconds
       setTimeout(() => setFormSuccess(false), 5000)
     }, 1500)
   }
@@ -108,599 +121,495 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-background noise-bg grid-bg">
+    <main className="min-h-screen bg-background text-foreground overflow-hidden selection:bg-primary/30 relative">
+      
+      {/* Cursor Glow Effect */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-[1] transition-opacity duration-300"
+        style={{
+          background: `radial-gradient(600px at ${mousePosition.x}px ${mousePosition.y}px, rgba(14, 165, 233, 0.1), transparent 80%)`,
+        }}
+      />
+      <div className="fixed inset-0 bg-animated-mesh -z-10" />
 
-      {/* Header */}
-      <header className="sticky top-0 z-10 w-full border-b border-border/30 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="font-mono font-bold text-xl text-gradient flex items-center gap-2">
-            <Terminal className="h-5 w-5" />
-            <span>{data.personalInfo.name}</span>
-          </div>
-          <nav className="hidden md:flex gap-6">
-            {Object.keys(sectionRefs).map((section) => (
-              <Link
-                key={section}
-                href={`#${section}`}
-                className={`text-muted-foreground hover:text-foreground transition-colors font-mono ${
-                  activeSection === section ? "text-accent" : ""
-                }`}
-              >
-                {section.charAt(0).toUpperCase() + section.slice(1)}
-              </Link>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="hidden md:inline-flex button-3d shadow-glow border-primary/20"
+      {/* Navigation */}
+      <header className="fixed top-0 left-0 right-0 z-50 p-6 flex justify-end pointer-events-none">
+        {/* Desktop Nav */}
+        <nav className="hidden md:flex items-center gap-2 glass-panel rounded-full px-2 py-2 pointer-events-auto">
+          {["About", "Experience", "Projects", "Skills", "Contact"].map((item) => (
+            <Link
+              key={item}
+              href={`#${item.toLowerCase()}`}
+              className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 ${
+                activeSection === item.toLowerCase() 
+                  ? "bg-white/10 text-white shadow-lg scale-105 backdrop-blur-md" 
+                  : "hover:bg-white/5 hover:text-primary text-muted-foreground"
+              }`}
             >
-              <Link href="#contact">Get in touch</Link>
-            </Button>
-          </div>
+              {item}
+            </Link>
+          ))}
+        </nav>
+
+        {/* Mobile Nav Toggle */}
+        <div className="md:hidden pointer-events-auto">
+           <Button 
+            size="icon" 
+            variant="outline" 
+            className="rounded-full bg-background/50 backdrop-blur-md border-white/10"
+            onClick={() => document.getElementById('mobile-menu')?.classList.toggle('hidden')}
+           >
+            <Menu className="h-5 w-5" />
+          </Button>
         </div>
       </header>
 
+      {/* Mobile Menu Overlay */}
+      <div id="mobile-menu" className="fixed inset-0 z-40 bg-background/95 backdrop-blur-xl hidden md:hidden flex-col items-center justify-center space-y-8 animate-in fade-in duration-200">
+         {["About", "Experience", "Projects", "Skills", "Contact"].map((item) => (
+            <Link
+              key={item}
+              href={`#${item.toLowerCase()}`}
+              className="text-2xl font-bold hover:text-primary transition-colors"
+              onClick={() => document.getElementById('mobile-menu')?.classList.add('hidden')}
+            >
+              {item}
+            </Link>
+          ))}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="absolute top-6 right-6 rounded-full"
+            onClick={() => document.getElementById('mobile-menu')?.classList.add('hidden')}
+          >
+            <span className="text-2xl">×</span>
+          </Button>
+      </div>
+
       {/* Hero Section */}
-      <section className="container py-24 md:py-32 space-y-8 relative overflow-hidden">
-        {/* Background Elements */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-accent/10 rounded-full blur-3xl"></div>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-8 fade-in-up">
+      <section id="hero" ref={sectionRefs.hero} className="relative min-h-screen z-10 overflow-hidden pt-32 pb-20">
+        <div className="hero-blob hero-blob-1" />
+        <div className="hero-blob hero-blob-2" />
+        <div className="hero-blob hero-blob-3" />
+
+        <div className="container flex flex-col justify-center gap-12">
+          <div className="grid lg:grid-cols-12 gap-12 items-center w-full relative">
+          {/* Intro copy */}
+          <div className="lg:col-span-7 space-y-10 text-center lg:text-left">
+            <div className="hero-pill inline-flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+              </span>
+              OPEN FOR COLLABORATION · ST. LOUIS, MO
+            </div>
+
             <div className="space-y-4">
-              <h1 className="text-5xl md:text-6xl font-bold text-gradient-enhanced leading-tight">
-                Hi, I'm <span className="text-foreground">{data.personalInfo.name}</span>
+              <h1 className="hero-title">
+                <span>ZHONGQUAN</span>
+                <span>CHENG</span>
               </h1>
-              <p className="text-xl md:text-2xl text-muted-foreground font-light">
-                {data.personalInfo.title}
+              <p className="hero-subtitle max-w-2xl mx-auto lg:mx-0">
+                Master's student pushing the boundaries of full-stack engineering, machine learning, and human-centered product design.
               </p>
-              <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl">
-                {data.personalInfo.bio}
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto lg:mx-0">
+                From backend optimization at Undergraduation.com to emotion-aware sensor research at Syracuse, I blend rigorous engineering with a creative eye for interaction.
               </p>
             </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button asChild size="lg" className="button-enhanced shadow-glow border-primary/20 text-lg px-8 py-6">
-                <Link href="#contact" className="group">
-                  Get In Touch
-                  <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
-              <Button variant="outline" asChild size="lg" className="button-enhanced shadow-glow border-primary/20 text-lg px-8 py-6">
-                <Link href="#projects" className="group">
-                  View Projects
-                  <ArrowUpRight className="ml-2 h-5 w-5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </Link>
-              </Button>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {heroHighlights.map((item) => (
+                <div key={item.id} className="hero-highlight-card">
+                  <p className="text-xs uppercase tracking-[0.2em] text-primary/80">{item.label}</p>
+                  <p className="text-lg font-semibold text-white">{item.value}</p>
+                  {item.desc && <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>}
+                </div>
+              ))}
             </div>
-            
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                <span>{data.personalInfo.location}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                <span>{data.personalInfo.email}</span>
-              </div>
+
+            <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
+              <Link href="#projects" className="btn-liquid-primary h-14 px-8 text-lg group w-full sm:w-auto">
+                View Projects
+                <ArrowUpRight className="ml-2 h-5 w-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+              </Link>
+              <Link href="#contact" className="btn-liquid h-14 px-8 text-lg w-full sm:w-auto">
+                Get in Touch
+              </Link>
             </div>
           </div>
-          
-          <div className="flex justify-center fade-in-up stagger-2">
-            <div className="profile-image-wrapper float">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-2xl scale-110"></div>
-              <div className="relative w-80 h-80 rounded-full overflow-hidden border-4 border-primary/30 shadow-2xl ring-4 ring-primary/10 pulse-glow">
+
+          {/* Photo + stat cards */}
+          <div className="lg:col-span-5 w-full flex justify-center">
+            <div className="hero-photo-container">
+              <div className="hero-photo-glow" />
+              <div className="hero-photo-frame">
                 {data.personalInfo.photo ? (
-                  <img
-                    src={data.personalInfo.photo}
-                    alt={data.personalInfo.name}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={data.personalInfo.photo} alt={data.personalInfo.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                    <p className="text-muted-foreground">Add your photo here</p>
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 text-muted-foreground">
+                    Add your photo
                   </div>
                 )}
               </div>
+
+              {heroStats.map((stat, index) => {
+                const Icon = stat.icon
+                return (
+                  <div
+                    key={stat.id}
+                    className={`hero-floating-card ${index === 0 ? "hero-floating-card--top" : "hero-floating-card--bottom"}`}
+                  >
+                    <div className="hero-floating-icon">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">{stat.title}</p>
+                      <p className="font-semibold text-white">{stat.metric}</p>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
+        </div>
+      </div>
+
+        <div className="hero-scroll-indicator">
+          <div className="hero-scroll-dot" />
         </div>
       </section>
 
       {/* About Section */}
-      <section id="about" ref={sectionRefs.about} className="container py-24 space-y-12">
-        <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold text-gradient-enhanced">
-            About Me
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Get to know me better and discover what drives my passion for technology and innovation.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <Card className="glass-enhanced card-hover card-shimmer shadow-glow h-full">
-              <CardContent className="p-8">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center pulse-glow">
-                      <Code className="h-6 w-6 text-primary" />
+      <section id="about" ref={sectionRefs.about} className="container py-32 relative z-10">
+        <div className="grid md:grid-cols-2 gap-16 items-center">
+          <div className="order-2 md:order-1">
+            <div className="relative p-8 rounded-3xl bg-card/30 border border-white/5 backdrop-blur-sm shadow-[0_0_50px_-10px_rgba(14,165,233,0.1)]">
+               <div className="absolute -top-4 -left-4 w-24 h-24 bg-primary/20 rounded-full blur-2xl"></div>
+               <div className="space-y-6 relative z-10">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="p-3 bg-primary/20 rounded-xl text-primary">
+                      <Terminal className="w-8 h-8" />
                     </div>
-                    <h3 className="text-2xl font-semibold text-gradient-enhanced">Background</h3>
+                    <h3 className="text-2xl font-bold">Bio</h3>
                   </div>
-                  <p className="text-lg text-muted-foreground leading-relaxed">
+                  <p className="text-lg leading-relaxed text-muted-foreground">
                     {data.personalInfo.bio}
                   </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="pt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                      <MapPin className="w-5 h-5 text-primary mb-2" />
+                      <p className="text-sm text-muted-foreground">Location</p>
+                      <p className="font-semibold">{data.personalInfo.location}</p>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                      <Mail className="w-5 h-5 text-primary mb-2" />
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="font-semibold break-all text-sm">{data.personalInfo.email}</p>
+                    </div>
+                  </div>
+               </div>
+            </div>
           </div>
-          
-          <div className="space-y-6">
-            <Card className="glass-enhanced card-hover card-shimmer shadow-glow">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center pulse-glow">
-                      <Mail className="h-5 w-5 text-primary" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gradient-enhanced">Contact Info</h3>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-card/50 rounded-lg">
-                      <MapPin className="h-4 w-4 text-primary" />
-                      <span className="text-sm">{data.personalInfo.location}</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-card/50 rounded-lg">
-                      <Mail className="h-4 w-4 text-primary" />
-                      <span className="text-sm">{data.personalInfo.email}</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-card/50 rounded-lg">
-                      <Phone className="h-4 w-4 text-primary" />
-                      <span className="text-sm">{data.personalInfo.phone}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-3 pt-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full shadow-glow button-3d border-primary/20"
-                    >
-                      <Github className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full shadow-glow button-3d border-primary/20"
-                    >
-                      <Linkedin className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="order-1 md:order-2 space-y-6">
+            <h2 className="text-headline">
+              <span className="text-primary">About</span> Me
+            </h2>
+            <p className="text-xl text-muted-foreground font-light">
+              Backend Developer and Data Science enthusiast with a knack for optimizing systems and building intelligent applications.
+            </p>
+            <div className="flex gap-4">
+               <a href="#" className="group flex items-center gap-2 text-lg font-bold hover:text-primary transition-colors">
+                  <Github className="w-6 h-6" /> Github <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
+               </a>
+               <a href={linkedinProfileUrl} target="_blank" rel="noreferrer" className="group flex items-center gap-2 text-lg font-bold hover:text-primary transition-colors">
+                  <Linkedin className="w-6 h-6" /> LinkedIn <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
+               </a>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Experience Tabs */}
-      <section id="experience" ref={sectionRefs.experience} className="container py-24 space-y-12">
-        <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold text-gradient-enhanced">
-            Experience
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            My professional journey and research experience in computer science and technology.
-          </p>
+      {/* Experience Section */}
+      <section id="experience" ref={sectionRefs.experience} className="container py-32 relative z-10">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+          <div className="space-y-4">
+            <h2 className="text-headline">Experience</h2>
+            <p className="text-muted-foreground max-w-md">
+              My professional journey and research contributions in the field of Computer Science.
+            </p>
+          </div>
         </div>
-        
-        <Tabs defaultValue="professional" className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 glass-effect border border-primary/20">
-            <TabsTrigger value="professional" className="font-medium">
-              Professional
-            </TabsTrigger>
-            <TabsTrigger value="research" className="font-medium">
-              Research
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="professional" className="space-y-6 mt-8">
-            {data.experiences
-              .filter((exp) => exp.type === "professional")
-              .map((exp, index) => (
-                <Card
-                  key={exp.id}
-                  className="glass-card card-hover shadow-glow fade-in-up group"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <CardContent className="p-8">
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                          <h3 className="text-2xl font-bold text-gradient group-hover:text-primary transition-colors">
-                            {exp.title}
-                          </h3>
-                          <p className="text-lg text-primary font-medium">{exp.company}</p>
-                        </div>
-                        <Badge variant="outline" className="glass-effect border-primary/20 px-4 py-2">
-                          {formatDate(exp.startDate)} - {exp.current ? "Present" : formatDate(exp.endDate)}
-                        </Badge>
-                      </div>
-                      <ul className="space-y-2">
-                        {exp.description.map((bullet, index) => (
-                          <li key={`${exp.id}-bullet-${index}`} className="flex items-start gap-3 text-muted-foreground">
-                            <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                            <span className="leading-relaxed">{bullet}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-          </TabsContent>
 
-          <TabsContent value="research" className="space-y-6 mt-8">
-            {data.experiences
-              .filter((exp) => exp.type === "research")
-              .map((exp, index) => (
-                <Card
-                  key={exp.id}
-                  className="glass-card card-hover shadow-glow fade-in-up group"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <CardContent className="p-8">
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-2">
-                          <h3 className="text-2xl font-bold text-gradient group-hover:text-primary transition-colors">
-                            {exp.title}
-                          </h3>
-                          <p className="text-lg text-primary font-medium">{exp.company}</p>
+        <Tabs defaultValue="professional" className="w-full">
+          <div className="mb-12">
+            <TabsList className="bg-card/50 border border-white/10 p-1 rounded-full backdrop-blur-md w-full md:w-auto grid grid-cols-2 md:flex">
+              <TabsTrigger value="professional" className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white">Professional</TabsTrigger>
+              <TabsTrigger value="research" className="rounded-full px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-white">Research</TabsTrigger>
+            </TabsList>
+          </div>
+
+            {/* Render content for both tabs - visibility controlled by TabsContent default behavior */}
+             {["professional", "research"].map((type) => (
+              <TabsContent key={type} value={type} className="space-y-8 mt-0">
+                 <div className="relative border-l-2 border-white/10 ml-4 md:ml-12 space-y-12 pl-8 md:pl-12 py-4">
+                    {data.experiences
+                      .filter(exp => exp.type === type)
+                      .map((exp, index) => (
+                        <div key={exp.id} className="relative group">
+                           <div className="absolute -left-[41px] md:-left-[59px] top-0 p-2 bg-background border-2 border-white/10 rounded-full group-hover:border-primary group-hover:scale-110 transition-all duration-300 z-10">
+                              <Zap className="w-4 h-4 md:w-6 md:h-6 text-primary" />
+                           </div>
+                           <div className="space-y-4">
+                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                                <h3 className="text-2xl md:text-3xl font-bold group-hover:text-primary transition-colors">{exp.title}</h3>
+                                <span className="text-sm font-mono text-muted-foreground bg-white/5 px-3 py-1 rounded-full border border-white/5 w-fit whitespace-nowrap">
+                                  {exp.startDate} — {exp.endDate || "Present"}
+                                </span>
+                              </div>
+                              <div className="text-xl text-accent font-medium">{exp.company}</div>
+                              <ul className="space-y-2 text-muted-foreground list-disc list-inside">
+                                {exp.description.map((item, i) => (
+                                  <li key={i} className="leading-relaxed pl-2 marker:text-primary/50">
+                                    <span className="-ml-2">{item}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                           </div>
                         </div>
-                        <Badge variant="outline" className="glass-effect border-primary/20 px-4 py-2">
-                          {formatDate(exp.startDate)} - {exp.current ? "Present" : formatDate(exp.endDate)}
-                        </Badge>
-                      </div>
-                      <ul className="space-y-2">
-                        {exp.description.map((bullet, index) => (
-                          <li key={`${exp.id}-bullet-${index}`} className="flex items-start gap-3 text-muted-foreground">
-                            <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                            <span className="leading-relaxed">{bullet}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-          </TabsContent>
+                      ))}
+                 </div>
+              </TabsContent>
+             ))}
         </Tabs>
       </section>
 
       {/* Projects Section */}
-      <section id="projects" ref={sectionRefs.projects} className="container py-24 space-y-12">
-        <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold text-gradient-enhanced">
-            Projects
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            A showcase of my technical projects and creative solutions in software development.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {data.projects.map((project, index) => (
-            <Card
-              key={project.id}
-              className="project-card card-hover shadow-glow overflow-hidden fade-in-up group h-full"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent"></div>
-              <CardContent className="p-6 h-full flex flex-col">
-                <div className="space-y-4 flex-1">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Braces className="h-5 w-5 text-primary" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gradient group-hover:text-primary transition-colors">
-                      {project.title}
-                    </h3>
-                  </div>
-                  
-                  <p className="text-muted-foreground leading-relaxed flex-1">
-                    {project.description}
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {project.tags.map((tag, index) => (
-                      <Badge key={`${project.id}-tag-${index}`} className="glass-effect border-primary/20 text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
+      <section id="projects" ref={sectionRefs.projects} className="container py-32 relative z-10">
+         <div className="mb-20 space-y-4 text-center md:text-left">
+            <h2 className="text-display text-center">SELECTED <span className="text-gradient-bold">WORKS</span></h2>
+         </div>
+
+         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {data.projects.map((project, index) => (
+              <div 
+                key={project.id}
+                className="group relative rounded-3xl bg-card border border-white/10 overflow-hidden hover:border-primary/50 transition-all duration-500 hover:-translate-y-2"
+              >
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/90 z-10 opacity-60 group-hover:opacity-80 transition-opacity" />
+                
+                {/* Decorative Background for Project Card */}
+                <div className="absolute inset-0 bg-[url('/placeholder.svg')] bg-cover bg-center opacity-10 group-hover:scale-110 transition-transform duration-700 grayscale group-hover:grayscale-0"></div>
+                
+                <div className="relative z-20 p-8 h-full flex flex-col justify-end min-h-[400px]">
+                   <div className="space-y-4 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                      <div className="flex items-center justify-between">
+                         <div className="p-2 bg-primary/20 rounded-lg backdrop-blur-md text-white">
+                            <Layers className="w-6 h-6" />
+                         </div>
+                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+                            {project.repoUrl && (
+                              <a href={project.repoUrl} className="p-2 bg-white/10 rounded-full hover:bg-primary hover:text-white transition-colors">
+                                <Github className="w-5 h-5" />
+                              </a>
+                            )}
+                            {project.demoUrl && (
+                              <a href={project.demoUrl} className="p-2 bg-white/10 rounded-full hover:bg-primary hover:text-white transition-colors">
+                                <ExternalLink className="w-5 h-5" />
+                              </a>
+                            )}
+                         </div>
+                      </div>
+                      
+                      <h3 className="text-2xl font-bold text-white">{project.title}</h3>
+                      <p className="text-gray-300 line-clamp-3 group-hover:line-clamp-none transition-all">
+                        {project.description}
+                      </p>
+                      
+                      <div className="flex flex-wrap gap-2 pt-4">
+                        {project.tags.map(tag => (
+                          <span key={tag} className="project-tag">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            ))}
+         </div>
       </section>
 
       {/* Skills Section */}
-      <section id="skills" ref={sectionRefs.skills} className="container py-24 space-y-12">
-        <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold text-gradient-enhanced">
-            Skills
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            My technical expertise and proficiency in various programming languages and technologies.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="glass-enhanced card-hover card-shimmer shadow-glow">
-            <CardContent className="p-8">
-              <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center pulse-glow">
-                    <Code className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="text-2xl font-semibold text-gradient-enhanced">Programming Languages</h3>
-                </div>
+      <section id="skills" ref={sectionRefs.skills} className="py-32 bg-card/30 border-y border-white/5 relative z-10">
+        <div className="container">
+          <div className="grid lg:grid-cols-2 gap-16">
+             <div className="space-y-8">
+                <h2 className="text-headline">Technical <span className="text-primary">Arsenal</span></h2>
+                <p className="text-lg text-muted-foreground">
+                  A comprehensive list of technologies and tools I've worked with throughout my academic and professional career.
+                </p>
+                
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {data.skills
-                    .filter((skill) => skill.category === "programming")
-                    .map((skill) => (
-                      <div
-                        key={skill.id}
-                        className="skill-card flex items-center gap-3 p-4 rounded-xl border border-primary/20 shadow-glow group"
-                      >
-                        <div className="text-primary group-hover:scale-110 transition-transform">
-                          {skillIcons[skill.name] || <Code className="h-5 w-5" />}
-                        </div>
-                        <span className="font-medium">{skill.name}</span>
+                  {data.skills.slice(0, 6).map(skill => (
+                    <div key={skill.id} className="flex flex-col items-center justify-center p-6 rounded-2xl bg-background border border-white/5 hover:border-primary/50 hover:shadow-[0_0_20px_-5px_rgba(14,165,233,0.3)] transition-all duration-300 group">
+                       <div className="text-muted-foreground group-hover:text-primary transition-colors mb-3 transform group-hover:scale-110 duration-300">
+                         {skillIcons[skill.name] || <Code className="h-8 w-8" />}
+                       </div>
+                       <span className="font-medium text-sm text-center">{skill.name}</span>
+                    </div>
+                  ))}
+                </div>
+             </div>
+             
+             <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-3xl opacity-50" />
+                <div className="relative z-10 grid gap-6">
+                   <div className="p-8 rounded-3xl bg-background/50 backdrop-blur-xl border border-white/10 hover:border-primary/30 transition-colors">
+                      <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-accent" />
+                        Key Competencies
+                      </h3>
+                      <div className="flex flex-wrap gap-3">
+                        {data.skills.map(skill => (
+                          <Badge key={skill.id} variant="secondary" className="px-3 py-1.5 text-sm bg-white/5 hover:bg-primary hover:text-white transition-colors cursor-default">
+                            {skill.name}
+                          </Badge>
+                        ))}
                       </div>
-                    ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-enhanced card-hover card-shimmer shadow-glow">
-            <CardContent className="p-8">
-              <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center pulse-glow">
-                    <Cpu className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="text-2xl font-semibold text-gradient-enhanced">Tools & Technologies</h3>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {data.skills
-                    .filter((skill) => skill.category === "other")
-                    .map((skill) => (
-                      <div
-                        key={skill.id}
-                        className="skill-card flex items-center gap-3 p-4 rounded-xl border border-primary/20 shadow-glow group"
-                      >
-                        <div className="text-primary group-hover:scale-110 transition-transform">
-                          {skillIcons[skill.name] || <Server className="h-5 w-5" />}
-                        </div>
-                        <span className="font-medium">{skill.name}</span>
+                   </div>
+                   
+                   <div className="p-8 rounded-3xl bg-background/50 backdrop-blur-xl border border-white/10 hover:border-primary/30 transition-colors">
+                      <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-accent" />
+                        Languages
+                      </h3>
+                      <div className="space-y-4">
+                        {data.languages.map(lang => (
+                          <div key={lang.id} className="flex justify-between items-center">
+                            <span className="font-medium">{lang.name}</span>
+                            <span className="text-sm text-muted-foreground bg-white/5 px-3 py-1 rounded-full">{lang.level}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+             </div>
+          </div>
         </div>
-      </section>
-
-      {/* Languages */}
-      <section className="container py-16">
-        <Card className="glass-enhanced card-hover card-shimmer shadow-glow max-w-2xl mx-auto pulse-glow">
-          <CardContent className="p-8">
-            <div className="text-center space-y-6">
-              <div className="flex items-center justify-center gap-3">
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center pulse-glow">
-                  <Globe className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-2xl font-semibold text-gradient-enhanced">Languages</h3>
-              </div>
-              <div className="flex justify-center gap-6">
-                {data.languages.map((language) => (
-                  <div
-                    key={language.id}
-                    className="skill-card px-6 py-4 rounded-xl shadow-glow border border-primary/20 text-center min-w-[120px]"
-                  >
-                    <p className="font-semibold text-gradient-enhanced text-lg">{language.name}</p>
-                    <p className="text-sm text-muted-foreground">{language.level}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </section>
 
       {/* Contact Section */}
-      <section id="contact" ref={sectionRefs.contact} className="container py-24 space-y-12">
-        <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-bold text-gradient-enhanced">
-            Get In Touch
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Ready to collaborate or just want to say hello? I'd love to hear from you!
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <Card className="glass-enhanced card-hover card-shimmer shadow-glow">
-            <CardContent className="p-8">
-              <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center pulse-glow">
-                    <Mail className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="text-2xl font-semibold text-gradient-enhanced">Contact Information</h3>
-                </div>
-                
-                <p className="text-lg text-muted-foreground leading-relaxed">
-                  Feel free to reach out if you're interested in my work or would like to collaborate on a project.
-                </p>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-4 bg-card/50 rounded-lg">
-                    <Mail className="h-5 w-5 text-primary" />
-                    <span>{data.personalInfo.email}</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 bg-card/50 rounded-lg">
-                    <Phone className="h-5 w-5 text-primary" />
-                    <span>{data.personalInfo.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 bg-card/50 rounded-lg">
-                    <MapPin className="h-5 w-5 text-primary" />
-                    <span>{data.personalInfo.location}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <section id="contact" ref={sectionRefs.contact} className="container py-32 relative z-10">
+        <div className="max-w-4xl mx-auto">
+           <div className="text-center space-y-6 mb-16">
+              <h2 className="text-display">Let's <span className="text-primary">Talk</span></h2>
+              <p className="text-xl text-muted-foreground">Have a project in mind? Looking for a developer? Let's create something amazing together.</p>
+           </div>
 
-          <Card className="glass-enhanced card-hover card-shimmer shadow-glow">
-            <CardContent className="p-8">
-              <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center pulse-glow">
-                    <Send className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="text-2xl font-semibold text-gradient-enhanced">Send a Message</h3>
-                </div>
-                
-                <form className="space-y-6" onSubmit={handleSubmit}>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label htmlFor="name" className="text-sm font-medium text-muted-foreground">
-                        Name
-                      </label>
-                      <input
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        className="w-full p-3 rounded-lg border border-primary/20 bg-card/50 glass-effect focus:border-primary/50 focus:outline-none transition-colors"
-                        placeholder="Your name"
-                        required
-                      />
+           <div className="grid md:grid-cols-5 gap-8">
+              <Card className="md:col-span-2 bg-primary text-primary-foreground border-none overflow-hidden relative shadow-2xl">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full -ml-16 -mb-16 blur-2xl"></div>
+                 <CardContent className="p-8 h-full flex flex-col justify-between relative z-10">
+                    <div className="space-y-8">
+                       <div>
+                          <h3 className="text-xl font-bold mb-2">Contact Info</h3>
+                          <p className="opacity-90">Fill up the form and I will get back to you within 24 hours.</p>
+                       </div>
+                       <div className="space-y-4">
+                          <div className="flex items-center gap-3">
+                             <Phone className="w-5 h-5" />
+                             <span>{data.personalInfo.phone}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                             <Mail className="w-5 h-5" />
+                             <span className="break-all text-sm">{data.personalInfo.email}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                             <MapPin className="w-5 h-5" />
+                             <span>{data.personalInfo.location}</span>
+                          </div>
+                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <label htmlFor="email" className="text-sm font-medium text-muted-foreground">
-                        Email
-                      </label>
-                      <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className="w-full p-3 rounded-lg border border-primary/20 bg-card/50 glass-effect focus:border-primary/50 focus:outline-none transition-colors"
-                        placeholder="Your email"
-                        required
-                      />
+                    <div className="flex gap-4 pt-8">
+                       <a href="#" className="p-2 bg-white/20 rounded-full hover:bg-white hover:text-primary transition-colors">
+                          <Github className="w-5 h-5" />
+                       </a>
+                       <a href={linkedinProfileUrl} target="_blank" rel="noreferrer" className="p-2 bg-white/20 rounded-full hover:bg-white hover:text-primary transition-colors">
+                          <Linkedin className="w-5 h-5" />
+                       </a>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label htmlFor="message" className="text-sm font-medium text-muted-foreground">
-                      Message
-                    </label>
-                    <textarea
-                      id="message"
-                      name="message"
-                      value={formData.message}
-                      onChange={handleInputChange}
-                      className="w-full p-3 rounded-lg border border-primary/20 bg-card/50 glass-effect focus:border-primary/50 focus:outline-none transition-colors min-h-[120px] resize-none"
-                      placeholder="Your message"
-                      required
-                    />
-                  </div>
-                  
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full button-enhanced shadow-glow border-primary/20 text-lg py-6"
-                    disabled={isFormSubmitting}
-                  >
-                    {isFormSubmitting ? (
-                      <span className="flex items-center">
-                        <svg
-                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Processing...
-                      </span>
-                    ) : (
-                      <span className="flex items-center">
-                        <Send className="mr-2 h-5 w-5" />
-                        Send Message
-                      </span>
-                    )}
-                  </Button>
+                 </CardContent>
+              </Card>
 
-                  {formSuccess && (
-                    <div className="mt-4 p-4 bg-accent/10 border border-accent/30 rounded-lg text-accent">
-                      <p className="text-sm">Message sent successfully! I'll get back to you soon.</p>
-                    </div>
-                  )}
-                </form>
-              </div>
-            </CardContent>
-          </Card>
+              <Card className="md:col-span-3 bg-card border-white/10 shadow-2xl">
+                 <CardContent className="p-8">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                       <div className="grid sm:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                             <label htmlFor="name" className="text-sm font-medium">Name</label>
+                             <input 
+                                id="name" 
+                                name="name"
+                                value={formData.name} 
+                                onChange={handleInputChange} 
+                                className="w-full bg-background/50 border border-white/10 rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none transition-all"
+                                placeholder="John Doe"
+                                required
+                             />
+                          </div>
+                          <div className="space-y-2">
+                             <label htmlFor="email" className="text-sm font-medium">Email</label>
+                             <input 
+                                id="email" 
+                                name="email" 
+                                type="email"
+                                value={formData.email} 
+                                onChange={handleInputChange} 
+                                className="w-full bg-background/50 border border-white/10 rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none transition-all"
+                                placeholder="john@example.com"
+                                required
+                             />
+                          </div>
+                       </div>
+                       <div className="space-y-2">
+                          <label htmlFor="message" className="text-sm font-medium">Message</label>
+                          <textarea 
+                             id="message" 
+                             name="message"
+                             value={formData.message} 
+                             onChange={handleInputChange} 
+                             className="w-full bg-background/50 border border-white/10 rounded-lg p-3 min-h-[150px] focus:ring-2 focus:ring-primary outline-none transition-all resize-none"
+                             placeholder="Tell me about your project..."
+                             required
+                          />
+                       </div>
+                       <button type="submit" className="w-full btn-liquid-primary h-14 text-lg" disabled={isFormSubmitting}>
+                          {isFormSubmitting ? (
+                            <span className="flex items-center gap-2">
+                               <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                               Sending...
+                            </span>
+                          ) : (
+                             <span className="flex items-center gap-2">Send Message <Send className="w-4 h-4" /></span>
+                          )}
+                       </button>
+                       {formSuccess && (
+                          <div className="p-4 bg-green-500/10 text-green-500 rounded-lg border border-green-500/20 text-center">
+                             Message sent successfully!
+                          </div>
+                       )}
+                    </form>
+                 </CardContent>
+              </Card>
+           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border/30 py-6 md:py-8 glass-effect">
-        <div className="container flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="text-sm text-muted-foreground font-mono">
-            <span className="text-primary">©</span> {new Date().getFullYear()} {data.personalInfo.name}.{" "}
-            <span className="text-primary">All</span> <span className="text-accent">rights</span>{" "}
-            <span className="text-primary">reserved</span>.
-          </div>
-          <div className="flex gap-4">
-            <Button variant="ghost" size="sm" className="font-mono">
-              Privacy Policy
-            </Button>
-            <Button variant="ghost" size="sm" className="font-mono">
-              Terms of Service
-            </Button>
-          </div>
-        </div>
+      <footer className="py-8 border-t border-white/10 text-center text-muted-foreground text-sm relative z-10">
+         <div className="container">
+            <p>© {new Date().getFullYear()} {data.personalInfo.name}. Built with Next.js & Tailwind.</p>
+         </div>
       </footer>
     </main>
   )
