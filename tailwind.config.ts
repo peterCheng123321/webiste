@@ -21,14 +21,29 @@ const config = {
     extend: {
       fontFamily: {
         sans: [
-          "SF Pro Display",
-          "SF Pro Text",
+          "var(--font-sans)",
+          "Inter",
           "system-ui",
           "-apple-system",
           "BlinkMacSystemFont",
           "Segoe UI",
           "Roboto",
           "sans-serif",
+        ],
+        serif: [
+          "var(--font-serif)",
+          "Instrument Serif",
+          "Times New Roman",
+          "Georgia",
+          "serif",
+        ],
+        mono: [
+          "var(--font-mono)",
+          "JetBrains Mono",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "monospace",
         ],
       },
       colors: {
