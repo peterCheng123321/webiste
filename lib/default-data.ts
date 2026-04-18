@@ -1,4 +1,3 @@
-// Define types for our website data
 export interface PersonalInfo {
   name: string
   title: string
@@ -7,15 +6,15 @@ export interface PersonalInfo {
   email: string
   phone: string
   photo: string
-  qrCode: string
   linkedin?: string
-  linkedinPostUrl?: string
+  github?: string
 }
 
 export interface Experience {
   id: string
   title: string
   company: string
+  location?: string
   startDate: string
   endDate: string
   current: boolean
@@ -26,17 +25,35 @@ export interface Experience {
 export interface Project {
   id: string
   title: string
+  subtitle?: string
+  year?: string
   description: string
   tags: string[]
   repoUrl?: string
   demoUrl?: string
-  learnings?: string
 }
 
 export interface Skill {
   id: string
   name: string
-  category: "programming" | "other"
+  category: "languages" | "ml" | "mobile" | "tools"
+}
+
+export interface Education {
+  id: string
+  school: string
+  degree: string
+  location: string
+  startDate: string
+  endDate: string
+  notes?: string
+}
+
+export interface Award {
+  id: string
+  title: string
+  organization: string
+  year: string
 }
 
 export interface Language {
@@ -47,82 +64,119 @@ export interface Language {
 
 export interface WebsiteData {
   personalInfo: PersonalInfo
+  education: Education[]
   experiences: Experience[]
   projects: Project[]
   skills: Skill[]
+  awards: Award[]
   languages: Language[]
 }
 
-// Default data
 export const defaultData: WebsiteData = {
   personalInfo: {
     name: "Zhongquan Cheng",
-    title: "M.S. in Computer Science at Washington University in St. Louis",
-    bio: "I am a Master's student in Computer Science at Washington University in St. Louis, focusing on software engineering and data systems. With a background in backend development, data science, and mobile applications, I am passionate about building scalable, efficient systems and applying AI/ML to solve real-world problems.",
-    location: "St. Louis, MO",
+    title: "Software Engineer · Researcher",
+    bio: "I build backend systems and ML pipelines — currently at WashU focusing on computer vision for healthcare. My work sits at the intersection of reliable engineering and applied research: server optimization at Undergraduation.com, sensor-based emotion detection at Syracuse, and segmentation pipelines at the AI for Health Institute.",
+    location: "St. Louis, Missouri",
     email: "chengzhongquan0630@gmail.com",
-    phone: "", // Not provided in resume snippet, leaving blank or removing
+    phone: "+1 (315) 317-5618",
     photo: "/IMG_0782 2.JPG",
-    qrCode: "",
     linkedin: "https://www.linkedin.com/in/zhongquan-cheng/",
-    linkedinPostUrl: "", // Paste the embed URL for the exact LinkedIn post you want to feature
+    github: "https://github.com/petercheng123321",
   },
+  education: [
+    {
+      id: "edu1",
+      school: "Washington University in St. Louis",
+      degree: "M.S. in Computer Science",
+      location: "St. Louis, MO",
+      startDate: "2025-08",
+      endDate: "2027-05",
+      notes: "Expected · Focus: Software Engineering, Data Systems, Applied ML",
+    },
+    {
+      id: "edu2",
+      school: "Syracuse University",
+      degree: "B.S. in Computer Science",
+      location: "Syracuse, NY",
+      startDate: "2021-09",
+      endDate: "2025-05",
+    },
+  ],
   experiences: [
     {
       id: "exp1",
-      title: "Backend Intern",
+      title: "Backend Engineering Intern",
       company: "Undergraduation.com",
+      location: "Remote",
       startDate: "2025-09",
       endDate: "",
       current: true,
       description: [
-        "Optimized database query performance by 45% through index optimization and query refactoring, reducing average response time from 2.3s to 1.2s",
-        "Implemented RESTful API endpoints using Node.js and Express, enabling seamless integration between frontend and database",
-        "Refactored legacy server code for improved scalability, applying OOP principles and microservices architecture",
-        "Enhanced backend monitoring and logging systems, implementing automated alerts for system performance",
+        "Cut average API response time from 2.3s to 1.2s (45%) by refactoring queries and adding composite indexes on hot paths.",
+        "Built RESTful endpoints in Node.js / Express for the student-profile and application-tracking flows.",
+        "Modernized legacy server modules toward a cleaner OOP / service-oriented layout, reducing coupling between domains.",
+        "Instrumented backend logging and set up automated alerts for latency and error-rate regressions.",
       ],
       type: "professional",
     },
     {
       id: "exp2",
       title: "Data Science Intern",
-      company: "Asia Pulp & Paper Company",
+      company: "Asia Pulp & Paper",
+      location: "Shanghai, China",
       startDate: "2023-05",
       endDate: "2023-06",
       current: false,
       description: [
-        "Demonstrated rapid learning by mastering company data infrastructure within first week",
-        "Applied OOP principles to implement scalable ML models (XGBoost, Random Forest) achieving 92% accuracy in sales forecasting",
-        "Enhanced data warehouse functionality through engineering best practices, improving extraction efficiency by 40%",
-        "Collaborated across international teams to deliver projects within tight deadlines",
+        "Ramped on the Qingfeng data warehouse in the first week and shipped weekly sales trend analyses to business stakeholders.",
+        "Built sales forecasting models (XGBoost, Random Forest) reaching 92% accuracy on held-out weeks.",
+        "Proposed warehouse-side ETL changes that improved downstream extraction efficiency by ~40%.",
       ],
       type: "professional",
     },
     {
       id: "res1",
       title: "Graduate Researcher",
-      company: "AI for Health Institute (Master's Project)",
-      startDate: "2025",
+      company: "AI for Health Institute · WashU",
+      location: "St. Louis, MO",
+      startDate: "2025-08",
       endDate: "",
       current: true,
       description: [
-        "Working on computer vision applications for healthcare, specifically segmentation masks for overhead video patient analysis",
-        "Designed and implemented a vision model pipeline (SAM) for robust mask generation",
-        "Optimized pipeline for accuracy, stability, and real-time inference",
+        "Building a segmentation pipeline on overhead patient video for downstream behavioral analysis.",
+        "Adapted SAM-based vision models for robust mask generation under occlusion and low-light conditions.",
+        "Tuning the pipeline for real-time inference while preserving mask stability across frames.",
       ],
       type: "research",
     },
     {
       id: "res2",
       title: "Research Assistant",
-      company: "Syracuse University (Depression Detection)",
+      company: "Syracuse University · Salekin Lab",
+      location: "Syracuse, NY",
       startDate: "2024-02",
-      endDate: "",
-      current: true,
+      endDate: "2025-05",
+      current: false,
       description: [
-        "Developed Android application using Java/Kotlin for IMU sensor data collection and real-time processing",
-        "Applied CNN/LSTM techniques for sensor-emotion correlation analysis, achieving 87% classification accuracy",
-        "Collaborated with multidisciplinary team ensuring HIPAA compliance",
+        "Shipped an Android app (Kotlin/Java) collecting IMU and audio data from consented participants for a depression-detection study.",
+        "Trained CNN / LSTM models on sensor streams, reaching 87% classification accuracy on the labeled cohort.",
+        "Partnered with the clinical team to ensure HIPAA-aligned data handling and storage.",
+      ],
+      type: "research",
+    },
+    {
+      id: "res3",
+      title: "VR Game Developer, Team Lead",
+      company: "Syracuse University Library VR Project",
+      location: "Syracuse, NY",
+      startDate: "2022-09",
+      endDate: "2024-05",
+      current: false,
+      description: [
+        "Led a 3-person team building a Unity / C# VR experience to teach students how to navigate library resources.",
+        "Implemented gesture recognition, shader-based visual effects, and the interactive scene graph.",
+        "Delivered a working prototype used in a pilot with undergraduate library tours.",
       ],
       type: "research",
     },
@@ -131,39 +185,83 @@ export const defaultData: WebsiteData = {
     {
       id: "proj1",
       title: "Engineering Course Scheduler",
+      subtitle: "Full-stack · React, Node, AWS",
+      year: "2024",
       description:
-        "Full-Stack Web Application built with React and Node.js. Implemented optimization algorithms for conflict-free schedule generation with prerequisite validation. Integrated university course catalog API and deployed on AWS.",
+        "A scheduling tool that reads the university course catalog, validates prerequisites, and generates conflict-free timetables. Written in React + Node, deployed on AWS.",
       tags: ["React", "Node.js", "AWS", "Algorithms"],
     },
     {
       id: "proj2",
-      title: "ATS Application Tracker System",
+      title: "ATS — Application Tracker",
+      subtitle: "AI-assisted application screening",
+      year: "2024",
       description:
-        "Full-Stack Application with AI Integration using React, Node.js, and PostgreSQL with Gmail API integration. Won 2nd place at Syracuse Tech Challenge 2024 for AI-powered mental health screening tool components.",
+        "Full-stack tracker with Gmail API ingestion and AI-powered triage. Won 2nd place at Syracuse Tech Challenge 2024 for an AI mental-health screening component built on top.",
       tags: ["React", "Node.js", "PostgreSQL", "Gmail API"],
     },
     {
       id: "proj3",
-      title: "Depression Detection App",
+      title: "IMU Depression-Signal Collector",
+      subtitle: "Android · sensor + audio pipeline",
+      year: "2024",
       description:
-        "Android application for IMU sensor data collection and real-time processing. Used for research in detecting depression through mobile sensor data.",
-      tags: ["Android", "Java", "Kotlin", "Machine Learning"],
+        "Android app collecting IMU and audio streams on a schedule, with on-device buffering and secure upload. Used as the data-collection layer for the Salekin Lab depression-detection research.",
+      tags: ["Android", "Kotlin", "Java", "Signal Processing"],
+    },
+    {
+      id: "proj4",
+      title: "Library VR",
+      subtitle: "Unity · C# · gesture recognition",
+      year: "2023",
+      description:
+        "A VR onboarding experience that walks students through library stacks and digital resources. Built in Unity with custom gesture recognition and interactive scene scripting.",
+      tags: ["Unity", "C#", "VR"],
     },
   ],
   skills: [
-    { id: "skill1", name: "Python", category: "programming" },
-    { id: "skill2", name: "Java", category: "programming" },
-    { id: "skill3", name: "JavaScript/Node.js", category: "programming" },
-    { id: "skill4", name: "React", category: "programming" },
-    { id: "skill5", name: "SQL/PostgreSQL", category: "programming" },
-    { id: "skill6", name: "C/C++", category: "programming" },
-    { id: "skill7", name: "Machine Learning", category: "other" },
-    { id: "skill8", name: "AWS", category: "other" },
-    { id: "skill9", name: "Git", category: "other" },
-    { id: "skill10", name: "Docker", category: "other" },
+    { id: "s1", name: "Python", category: "languages" },
+    { id: "s2", name: "Java", category: "languages" },
+    { id: "s3", name: "JavaScript / TypeScript", category: "languages" },
+    { id: "s4", name: "C / C++", category: "languages" },
+    { id: "s5", name: "C#", category: "languages" },
+    { id: "s6", name: "R", category: "languages" },
+    { id: "s7", name: "SQL", category: "languages" },
+
+    { id: "s8", name: "PyTorch", category: "ml" },
+    { id: "s9", name: "scikit-learn", category: "ml" },
+    { id: "s10", name: "pandas / NumPy", category: "ml" },
+    { id: "s11", name: "XGBoost", category: "ml" },
+    { id: "s12", name: "SARIMAX", category: "ml" },
+    { id: "s13", name: "SAM / Segmentation", category: "ml" },
+    { id: "s14", name: "MFCC / FFT", category: "ml" },
+
+    { id: "s15", name: "Android (Kotlin / Java)", category: "mobile" },
+    { id: "s16", name: "Unity", category: "mobile" },
+
+    { id: "s17", name: "Node.js / Express", category: "tools" },
+    { id: "s18", name: "React / Next.js", category: "tools" },
+    { id: "s19", name: "PostgreSQL", category: "tools" },
+    { id: "s20", name: "AWS", category: "tools" },
+    { id: "s21", name: "Docker", category: "tools" },
+    { id: "s22", name: "Git", category: "tools" },
+  ],
+  awards: [
+    {
+      id: "a1",
+      title: "2nd Place · Syracuse Tech Challenge",
+      organization: "AI for Mental Health track",
+      year: "2024",
+    },
+    {
+      id: "a2",
+      title: "Senior Workshop Lead",
+      organization: "CuseHacks — Syracuse's annual hackathon",
+      year: "2023–2025",
+    },
   ],
   languages: [
-    { id: "lang1", name: "English", level: "Fluent" },
-    { id: "lang2", name: "Chinese (Mandarin)", level: "Native Speaker" },
+    { id: "l1", name: "English", level: "Fluent" },
+    { id: "l2", name: "Mandarin Chinese", level: "Native" },
   ],
 }

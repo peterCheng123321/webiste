@@ -1,14 +1,32 @@
 import type React from "react"
 import "./globals.css"
-import { Inter } from "next/font/google"
+import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+})
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-serif",
+  display: "swap",
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+})
 
 export const metadata = {
-  title: "Zhongquan Cheng - Computer Science Portfolio",
-  description: "Personal website of Zhongquan Cheng, Computer Science student at Syracuse University",
-    generator: 'v0.app'
+  title: "Zhongquan Cheng — Software Engineer & Researcher",
+  description:
+    "Portfolio of Zhongquan Cheng — M.S. Computer Science at Washington University in St. Louis. Backend engineering, applied ML, and computer-vision research.",
 }
 
 export default function RootLayout({
@@ -18,12 +36,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/sf-pro-display" />
-        <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/sf-mono" />
-      </head>
-      <body className={inter.variable}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+      <body
+        className={`${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans`}
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
           {children}
         </ThemeProvider>
       </body>
