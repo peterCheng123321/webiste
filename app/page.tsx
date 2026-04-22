@@ -155,10 +155,10 @@ export default function Home() {
       </header>
 
       {/* ───────────────────── Hero ───────────────────── */}
-      <section className="pt-32 pb-20 md:pt-40 md:pb-28">
+      <section className="pt-24 pb-14 md:pt-40 md:pb-28">
         <div className="editorial-container">
-          <div className="grid grid-cols-12 gap-x-6 gap-y-10">
-            <div className="col-span-12 flex items-baseline justify-between mb-2">
+          <div className="grid grid-cols-12 gap-x-6 gap-y-6 md:gap-y-10">
+            <div className="col-span-12 flex items-baseline justify-between mb-1 md:mb-2">
               <span className="eyebrow">Portfolio · Vol. 01</span>
               <span className="eyebrow hidden md:inline">St. Louis, MO · 38.627° N</span>
             </div>
@@ -168,7 +168,7 @@ export default function Home() {
               <span className="italic text-[hsl(var(--primary))]">Cheng.</span>
             </h1>
 
-            <div className="col-span-12 md:col-span-7 md:col-start-1 pt-6">
+            <div className="col-span-12 md:col-span-7 md:col-start-1 pt-2 md:pt-6">
               <p className="lede">
                 Software engineer and researcher building reliable backends
                 and applied&nbsp;ML systems. Currently at Washington University
@@ -177,24 +177,24 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="col-span-12 md:col-span-4 md:col-start-9 pt-6 flex flex-col gap-4">
+            <div className="col-span-12 md:col-span-4 md:col-start-9 pt-4 md:pt-6 flex flex-col gap-3 md:gap-4">
               <div className="flex items-baseline justify-between gap-4">
                 <span className="eyebrow">Now</span>
-                <span className="text-sm">M.S. CS, WashU · Backend @ Undergraduation.com</span>
+                <span className="text-sm text-right">M.S. CS, WashU</span>
               </div>
-              <div className="rule" />
-              <div className="flex items-baseline justify-between gap-4">
+              <div className="rule hidden md:block" />
+              <div className="hidden md:flex items-baseline justify-between gap-4">
                 <span className="eyebrow">Focus</span>
                 <span className="text-sm">Backend · Applied ML · CV Research</span>
               </div>
               <div className="rule" />
               <div className="flex items-baseline justify-between gap-4">
                 <span className="eyebrow">Status</span>
-                <span className="text-sm">Open to Summer 2026 internships</span>
+                <span className="text-sm text-right">Open · Summer 2026</span>
               </div>
             </div>
 
-            <div className="col-span-12 flex flex-wrap gap-3 pt-10">
+            <div className="col-span-12 flex flex-wrap gap-3 pt-6 md:pt-10">
               <Link href="#selected" className="btn btn-solid">
                 Selected work <ArrowUpRight className="w-4 h-4" />
               </Link>
@@ -215,10 +215,10 @@ export default function Home() {
       </section>
 
       {/* ───────────────────── Ticker ───────────────────── */}
-      <section className="border-y border-[hsl(var(--rule))] py-6 overflow-hidden">
-        <div className="ticker-track font-serif text-3xl md:text-5xl italic">
+      <section className="border-y border-[hsl(var(--rule))] py-4 md:py-6 overflow-hidden">
+        <div className="ticker-track font-serif text-2xl md:text-5xl italic">
           {[...tickerWords, ...tickerWords].map((word, i) => (
-            <span key={i} className="inline-flex items-center gap-12">
+            <span key={i} className="inline-flex items-center gap-8 md:gap-12">
               {word}
               <span className="text-[hsl(var(--primary))]">✦</span>
             </span>
@@ -258,8 +258,8 @@ export default function Home() {
               <p className="eyebrow mt-3">Fig. 01 — St. Louis, 2025</p>
             </div>
 
-            <div className="col-span-12 md:col-span-7 md:col-start-6 space-y-8 reveal">
-              <p className="lede not-italic font-sans text-[1.25rem] leading-[1.55] text-foreground/80">
+            <div className="col-span-12 md:col-span-7 md:col-start-6 space-y-6 md:space-y-8 reveal">
+              <p className="lede not-italic font-sans text-[1.05rem] md:text-[1.25rem] leading-[1.6] md:leading-[1.55] text-foreground/80">
                 {data.personalInfo.bio}
               </p>
 
@@ -286,7 +286,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Elsewhere</div>
+                  <div className="hidden md:block text-muted-foreground">Elsewhere</div>
                   <div className="flex items-center gap-3 pt-1 text-sm">
                     {data.personalInfo.github && (
                       <a
@@ -334,28 +334,34 @@ export default function Home() {
               {data.experiences.map((exp, i) => (
                 <article
                   key={exp.id}
-                  className="grid grid-cols-12 gap-x-6 gap-y-3 py-10 border-t border-[hsl(var(--rule))] reveal"
+                  className="grid grid-cols-12 gap-x-6 gap-y-3 py-8 md:py-10 border-t border-[hsl(var(--rule))] reveal"
                 >
                   <div className="col-span-12 md:col-span-2 flex md:flex-col md:gap-3 justify-between md:justify-start items-baseline md:items-start">
-                    <span className="font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                    <span className="hidden md:inline font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground">
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
                       {exp.type === "research" ? "Research" : "Professional"}
                     </span>
+                    <span className="md:hidden font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                      {formatRange(exp.startDate, exp.endDate, exp.current)}
+                    </span>
                   </div>
 
-                  <div className="col-span-12 md:col-span-7 space-y-4">
+                  <div className="col-span-12 md:col-span-7 space-y-3 md:space-y-4">
                     <header className="space-y-1">
                       <h3 className="display-md">{exp.title}</h3>
-                      <p className="text-base text-muted-foreground">
+                      <p className="text-sm md:text-base text-muted-foreground">
                         {exp.company}
                         {exp.location ? ` · ${exp.location}` : ""}
                       </p>
                     </header>
-                    <ul className="space-y-2 text-[0.95rem] leading-relaxed text-foreground/85">
+                    <ul className="space-y-2 text-sm md:text-[0.95rem] leading-relaxed text-foreground/85">
                       {exp.description.map((line, idx) => (
-                        <li key={idx} className="flex gap-3">
+                        <li
+                          key={idx}
+                          className={`flex gap-3 ${idx >= 2 ? "hidden md:flex" : ""}`}
+                        >
                           <span className="text-[hsl(var(--primary))] shrink-0">—</span>
                           <span>{line}</span>
                         </li>
@@ -363,7 +369,7 @@ export default function Home() {
                     </ul>
                   </div>
 
-                  <div className="col-span-12 md:col-span-3 md:text-right">
+                  <div className="hidden md:block col-span-12 md:col-span-3 md:text-right">
                     <span className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
                       {formatRange(exp.startDate, exp.endDate, exp.current)}
                     </span>
@@ -405,13 +411,13 @@ export default function Home() {
                   <h3 className="project-title display-md">
                     {project.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="hidden md:block text-sm text-muted-foreground">
                     {project.subtitle}
                   </p>
-                  <p className="text-[0.95rem] leading-relaxed text-foreground/80 max-w-2xl">
+                  <p className="hidden md:block text-[0.95rem] leading-relaxed text-foreground/80 max-w-2xl">
                     {project.description}
                   </p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+                  <div className="hidden md:flex flex-wrap gap-x-4 gap-y-1 pt-1">
                     {project.tags.map((t) => (
                       <span
                         key={t}
@@ -506,16 +512,16 @@ export default function Home() {
                   return (
                     <div
                       key={group.key}
-                      className="grid grid-cols-12 gap-x-6 pt-6 border-t border-[hsl(var(--rule))]"
+                      className="grid grid-cols-12 gap-x-6 gap-y-3 pt-6 border-t border-[hsl(var(--rule))]"
                     >
-                      <div className="col-span-4">
+                      <div className="col-span-12 md:col-span-4">
                         <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
                           {group.title}
                         </span>
                       </div>
-                      <div className="col-span-8 flex flex-wrap gap-x-5 gap-y-2">
+                      <div className="col-span-12 md:col-span-8 flex flex-wrap gap-x-4 md:gap-x-5 gap-y-1 md:gap-y-2">
                         {items.map((s) => (
-                          <span key={s.id} className="font-serif text-xl md:text-2xl">
+                          <span key={s.id} className="font-serif text-base md:text-2xl">
                             {s.name}
                             <span className="text-[hsl(var(--primary))]">.</span>
                           </span>

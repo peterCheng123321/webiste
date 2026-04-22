@@ -79,7 +79,7 @@
 .display-xl {
   font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
   font-weight: 400;
-  font-size: clamp(3.5rem, 14vw, 11rem);
+  font-size: clamp(2.75rem, 14vw, 11rem);
   line-height: 0.88;
   letter-spacing: -0.035em;
 }
@@ -107,7 +107,7 @@
 .lede {
   font-family: var(--font-serif), Georgia, serif;
   font-weight: 400;
-  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
   line-height: 1.5;
   letter-spacing: -0.01em;
   font-style: italic;
@@ -132,7 +132,7 @@
 }
 
 .section {
-  @apply py-24 md:py-32;
+  @apply py-16 md:py-32;
 }
 
 .section-head {
@@ -224,12 +224,20 @@
 /* --------- Project row (editorial list) --------- */
 .project-row {
   display: grid;
-  grid-template-columns: 3rem 1fr auto;
-  gap: 1.5rem;
+  grid-template-columns: 2rem 1fr auto;
+  gap: 1rem;
   align-items: baseline;
-  padding: 1.75rem 0;
+  padding: 1.25rem 0;
   border-top: 1px solid hsl(var(--rule));
   transition: padding 0.4s cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+@media (min-width: 768px) {
+  .project-row {
+    grid-template-columns: 3rem 1fr auto;
+    gap: 1.5rem;
+    padding: 1.75rem 0;
+  }
 }
 
 .project-row:last-of-type {
