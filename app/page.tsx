@@ -202,7 +202,7 @@ export default function Home() {
                 Get in touch
               </Link>
               <a
-                href="/resume (1).pdf"
+                href="/resume.pdf"
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn-ghost"
