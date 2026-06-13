@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from "react"
+import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowUpRight, Github, Linkedin, Mail, MapPin, Phone } from "lucide-react"
-import { defaultData } from "@/lib/default-data"
+import { defaultData, type Skill } from "@/lib/default-data"
 
 const formatMonth = (value: string) => {
   if (!value) return ""
@@ -24,6 +24,47 @@ const nav = [
   { label: "Contact", href: "#contact" },
 ]
 
+const sectionIds = nav.map((item) => item.href.slice(1))
+
+const skillGroups: Array<{ key: Skill["category"]; title: string }> = [
+  { key: "languages", title: "Languages" },
+  { key: "ml", title: "ML & Data" },
+  { key: "mobile", title: "Mobile & Reality" },
+  { key: "tools", title: "Platforms & Tools" },
+]
+
+const tickerWords = [
+  "Backend",
+  "Applied ML",
+  "Computer Vision",
+  "Sensor Systems",
+  "Distributed Systems",
+  "Data Pipelines",
+  "Signal Processing",
+  "Full-Stack",
+  "Interaction Design",
+]
+
+function SectionHead({
+  index,
+  eyebrow,
+  children,
+}: {
+  index: string
+  eyebrow: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="section-head">
+      <div className="col-span-12 md:col-span-3 flex flex-col gap-2">
+        <span className="section-index">{index}</span>
+        <span className="eyebrow">{eyebrow}</span>
+      </div>
+      <h2 className="col-span-12 md:col-span-9 display-lg">{children}</h2>
+    </div>
+  )
+}
+
 export default function Home() {
   const data = defaultData
   const [activeSection, setActiveSection] = useState("top")
@@ -31,7 +72,6 @@ export default function Home() {
   const [formData, setFormData] = useState({ name: "", email: "", message: "" })
   const [formSuccess, setFormSuccess] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const sectionIds = ["index", "work", "selected", "studies", "contact"]
 
   useEffect(() => {
     const tick = () => {
@@ -95,25 +135,6 @@ export default function Home() {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
-
-  const skillGroups: Array<{ key: "languages" | "ml" | "mobile" | "tools"; title: string }> = [
-    { key: "languages", title: "Languages" },
-    { key: "ml", title: "ML & Data" },
-    { key: "mobile", title: "Mobile & Reality" },
-    { key: "tools", title: "Platforms & Tools" },
-  ]
-
-  const tickerWords = [
-    "Backend",
-    "Applied ML",
-    "Computer Vision",
-    "Sensor Systems",
-    "Distributed Systems",
-    "Data Pipelines",
-    "Signal Processing",
-    "Full-Stack",
-    "Interaction Design",
-  ]
 
   return (
     <main id="top" className="min-h-screen bg-background text-foreground">
@@ -229,16 +250,10 @@ export default function Home() {
       {/* ───────────────────── 00 / Index (About) ───────────────────── */}
       <section id="index" className="section">
         <div className="editorial-container">
-          <div className="section-head">
-            <div className="col-span-12 md:col-span-3 flex flex-col gap-2">
-              <span className="section-index">§ 00 / Index</span>
-              <span className="eyebrow">About</span>
-            </div>
-            <h2 className="col-span-12 md:col-span-9 display-lg">
-              A habit of picking up the hard&nbsp;part&nbsp;of the stack —
-              and then <span className="italic text-[hsl(var(--primary))]">finishing&nbsp;it.</span>
-            </h2>
-          </div>
+          <SectionHead index="§ 00 / Index" eyebrow="About">
+            A habit of picking up the hard&nbsp;part&nbsp;of the stack —
+            and then <span className="italic text-[hsl(var(--primary))]">finishing&nbsp;it.</span>
+          </SectionHead>
 
           <div className="grid grid-cols-12 gap-x-6 gap-y-10">
             <div className="col-span-12 md:col-span-4 lg:col-span-3">
@@ -319,15 +334,9 @@ export default function Home() {
       {/* ───────────────────── 01 / Work (Experience) ───────────────────── */}
       <section id="work" className="section border-t border-[hsl(var(--rule))]">
         <div className="editorial-container">
-          <div className="section-head">
-            <div className="col-span-12 md:col-span-3 flex flex-col gap-2">
-              <span className="section-index">§ 01 / Work</span>
-              <span className="eyebrow">Experience &amp; Research</span>
-            </div>
-            <h2 className="col-span-12 md:col-span-9 display-lg">
-              Positions held, in&nbsp;chronological&nbsp;order.
-            </h2>
-          </div>
+          <SectionHead index="§ 01 / Work" eyebrow="Experience & Research">
+            Positions held, in&nbsp;chronological&nbsp;order.
+          </SectionHead>
 
           <div className="grid grid-cols-12 gap-x-6">
             <div className="col-span-12 space-y-0">
@@ -378,15 +387,9 @@ export default function Home() {
       {/* ───────────────────── 02 / Selected Work (Projects) ───────────────────── */}
       <section id="selected" className="section border-t border-[hsl(var(--rule))]">
         <div className="editorial-container">
-          <div className="section-head">
-            <div className="col-span-12 md:col-span-3 flex flex-col gap-2">
-              <span className="section-index">§ 02 / Selected</span>
-              <span className="eyebrow">Projects</span>
-            </div>
-            <h2 className="col-span-12 md:col-span-9 display-lg">
-              A short reading list of what I&apos;ve&nbsp;built.
-            </h2>
-          </div>
+          <SectionHead index="§ 02 / Selected" eyebrow="Projects">
+            A short reading list of what I&apos;ve&nbsp;built.
+          </SectionHead>
 
           <div>
             {data.projects.map((project, i) => (
@@ -438,17 +441,11 @@ export default function Home() {
       {/* ───────────────────── 03 / Studies (Education + Skills) ───────────────────── */}
       <section id="studies" className="section border-t border-[hsl(var(--rule))]">
         <div className="editorial-container">
-          <div className="section-head">
-            <div className="col-span-12 md:col-span-3 flex flex-col gap-2">
-              <span className="section-index">§ 03 / Studies</span>
-              <span className="eyebrow">Education &amp; Competencies</span>
-            </div>
-            <h2 className="col-span-12 md:col-span-9 display-lg">
-              Where I studied,
-              <br />
-              and what I&apos;ve learned to&nbsp;use.
-            </h2>
-          </div>
+          <SectionHead index="§ 03 / Studies" eyebrow="Education & Competencies">
+            Where I studied,
+            <br />
+            and what I&apos;ve learned to&nbsp;use.
+          </SectionHead>
 
           <div className="grid grid-cols-12 gap-x-6 gap-y-16">
             {/* Education */}
@@ -509,9 +506,7 @@ export default function Home() {
                       className="grid grid-cols-12 gap-x-6 pt-6 border-t border-[hsl(var(--rule))]"
                     >
                       <div className="col-span-4">
-                        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                          {group.title}
-                        </span>
+                        <span className="eyebrow">{group.title}</span>
                       </div>
                       <div className="col-span-8 flex flex-wrap gap-x-5 gap-y-2">
                         {items.map((s) => (
@@ -533,17 +528,11 @@ export default function Home() {
       {/* ───────────────────── 04 / Contact ───────────────────── */}
       <section id="contact" className="section border-t border-[hsl(var(--rule))]">
         <div className="editorial-container">
-          <div className="section-head">
-            <div className="col-span-12 md:col-span-3 flex flex-col gap-2">
-              <span className="section-index">§ 04 / Contact</span>
-              <span className="eyebrow">Get in touch</span>
-            </div>
-            <h2 className="col-span-12 md:col-span-9 display-lg">
-              A good email beats a&nbsp;bad&nbsp;meeting.
-              <br />
-              <span className="italic text-[hsl(var(--primary))]">Say&nbsp;hello.</span>
-            </h2>
-          </div>
+          <SectionHead index="§ 04 / Contact" eyebrow="Get in touch">
+            A good email beats a&nbsp;bad&nbsp;meeting.
+            <br />
+            <span className="italic text-[hsl(var(--primary))]">Say&nbsp;hello.</span>
+          </SectionHead>
 
           <div className="grid grid-cols-12 gap-x-6 gap-y-12">
             <aside className="col-span-12 md:col-span-5 space-y-10 reveal">
@@ -649,7 +638,7 @@ export default function Home() {
               </div>
 
               <div className="flex items-center justify-between gap-4 pt-2">
-                <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+                <span className="eyebrow">
                   {formSuccess
                     ? "— Message received. Back to you soon."
                     : "Replies usually within 24h."}
