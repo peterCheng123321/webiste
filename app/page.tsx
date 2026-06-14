@@ -1,9 +1,10 @@
-"use client"
-
-import React, { useEffect, useRef, useState } from "react"
+import type { ReactNode } from "react"
 import Link from "next/link"
 import { ArrowUpRight, Github, Linkedin, Mail, MapPin, Phone } from "lucide-react"
-import { defaultData } from "@/lib/default-data"
+import { defaultData, type Skill } from "@/lib/default-data"
+import { SiteHeader } from "@/components/site-header"
+import { RevealOnScroll } from "@/components/reveal-on-scroll"
+import { ContactForm } from "@/components/contact-form"
 
 const formatMonth = (value: string) => {
   if (!value) return ""
@@ -16,143 +17,52 @@ const formatMonth = (value: string) => {
 const formatRange = (start: string, end: string, current: boolean) =>
   `${formatMonth(start)} — ${current || !end ? "Present" : formatMonth(end)}`
 
-const nav = [
-  { label: "Index", href: "#index" },
-  { label: "Work", href: "#work" },
-  { label: "Selected", href: "#selected" },
-  { label: "Studies", href: "#studies" },
-  { label: "Contact", href: "#contact" },
+const skillGroups: Array<{ key: Skill["category"]; title: string }> = [
+  { key: "languages", title: "Languages" },
+  { key: "ml", title: "ML & Data" },
+  { key: "mobile", title: "Mobile & Reality" },
+  { key: "tools", title: "Platforms & Tools" },
 ]
+
+const tickerWords = [
+  "Backend",
+  "Applied ML",
+  "Computer Vision",
+  "Sensor Systems",
+  "Distributed Systems",
+  "Data Pipelines",
+  "Signal Processing",
+  "Full-Stack",
+  "Interaction Design",
+]
+
+function SectionHead({
+  index,
+  eyebrow,
+  children,
+}: {
+  index: string
+  eyebrow: string
+  children: ReactNode
+}) {
+  return (
+    <div className="section-head">
+      <div className="col-span-12 md:col-span-3 flex flex-col gap-2">
+        <span className="section-index">{index}</span>
+        <span className="eyebrow">{eyebrow}</span>
+      </div>
+      <h2 className="col-span-12 md:col-span-9 display-lg">{children}</h2>
+    </div>
+  )
+}
 
 export default function Home() {
   const data = defaultData
-  const [activeSection, setActiveSection] = useState("top")
-  const [currentTime, setCurrentTime] = useState("")
-  const [formData, setFormData] = useState({ name: "", email: "", message: "" })
-  const [formSuccess, setFormSuccess] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const sectionIds = ["index", "work", "selected", "studies", "contact"]
-
-  useEffect(() => {
-    const tick = () => {
-      const now = new Date()
-      setCurrentTime(
-        now.toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: "America/Chicago",
-        }) + " CT",
-      )
-    }
-    tick()
-    const id = setInterval(tick, 30_000)
-    return () => clearInterval(id)
-  }, [])
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) setActiveSection(entry.target.id)
-        })
-      },
-      { rootMargin: "-30% 0px -55% 0px", threshold: 0.05 },
-    )
-    sectionIds.forEach((id) => {
-      const el = document.getElementById(id)
-      if (el) observer.observe(el)
-    })
-    return () => observer.disconnect()
-  }, [])
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) entry.target.classList.add("is-visible")
-        })
-      },
-      { rootMargin: "0px 0px -10% 0px", threshold: 0.08 },
-    )
-    document.querySelectorAll(".reveal").forEach((el) => observer.observe(el))
-    return () => observer.disconnect()
-  }, [])
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setFormSuccess(true)
-      setFormData({ name: "", email: "", message: "" })
-      setTimeout(() => setFormSuccess(false), 4500)
-    }, 900)
-  }
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const skillGroups: Array<{ key: "languages" | "ml" | "mobile" | "tools"; title: string }> = [
-    { key: "languages", title: "Languages" },
-    { key: "ml", title: "ML & Data" },
-    { key: "mobile", title: "Mobile & Reality" },
-    { key: "tools", title: "Platforms & Tools" },
-  ]
-
-  const tickerWords = [
-    "Backend",
-    "Applied ML",
-    "Computer Vision",
-    "Sensor Systems",
-    "Distributed Systems",
-    "Data Pipelines",
-    "Signal Processing",
-    "Full-Stack",
-    "Interaction Design",
-  ]
 
   return (
     <main id="top" className="min-h-screen bg-background text-foreground">
-      {/* ───────────────────── Top Bar ───────────────────── */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-background/85 backdrop-blur-md border-b border-[hsl(var(--rule))]">
-        <div className="editorial-container flex items-center justify-between py-4">
-          <Link href="#top" className="flex items-baseline gap-3">
-            <span className="font-serif text-2xl leading-none">Zhongquan Cheng</span>
-            <span className="hidden md:inline font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-              — Portfolio / MMXXVI
-            </span>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-7 font-mono text-[11px] uppercase tracking-[0.22em]">
-            {nav.map((item, i) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`transition-colors ${
-                  activeSection === item.href.slice(1)
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <span className="text-muted-foreground/70 mr-1.5">
-                  {String(i).padStart(2, "0")}
-                </span>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="hidden lg:flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse" />
-            <span>Available · St. Louis</span>
-            {currentTime && <span className="opacity-70">· {currentTime}</span>}
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
+      <RevealOnScroll />
 
       {/* ───────────────────── Hero ───────────────────── */}
       <section className="pt-32 pb-20 md:pt-40 md:pb-28">
@@ -202,7 +112,7 @@ export default function Home() {
                 Get in touch
               </Link>
               <a
-                href="/resume (1).pdf"
+                href="/resume.pdf"
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn-ghost"
@@ -229,16 +139,10 @@ export default function Home() {
       {/* ───────────────────── 00 / Index (About) ───────────────────── */}
       <section id="index" className="section">
         <div className="editorial-container">
-          <div className="section-head">
-            <div className="col-span-12 md:col-span-3 flex flex-col gap-2">
-              <span className="section-index">§ 00 / Index</span>
-              <span className="eyebrow">About</span>
-            </div>
-            <h2 className="col-span-12 md:col-span-9 display-lg">
-              A habit of picking up the hard&nbsp;part&nbsp;of the stack —
-              and then <span className="italic text-[hsl(var(--primary))]">finishing&nbsp;it.</span>
-            </h2>
-          </div>
+          <SectionHead index="§ 00 / Index" eyebrow="About">
+            A habit of picking up the hard&nbsp;part&nbsp;of the stack —
+            and then <span className="italic text-[hsl(var(--primary))]">finishing&nbsp;it.</span>
+          </SectionHead>
 
           <div className="grid grid-cols-12 gap-x-6 gap-y-10">
             <div className="col-span-12 md:col-span-4 lg:col-span-3">
@@ -319,15 +223,9 @@ export default function Home() {
       {/* ───────────────────── 01 / Work (Experience) ───────────────────── */}
       <section id="work" className="section border-t border-[hsl(var(--rule))]">
         <div className="editorial-container">
-          <div className="section-head">
-            <div className="col-span-12 md:col-span-3 flex flex-col gap-2">
-              <span className="section-index">§ 01 / Work</span>
-              <span className="eyebrow">Experience &amp; Research</span>
-            </div>
-            <h2 className="col-span-12 md:col-span-9 display-lg">
-              Positions held, in&nbsp;chronological&nbsp;order.
-            </h2>
-          </div>
+          <SectionHead index="§ 01 / Work" eyebrow="Experience & Research">
+            Positions held, in&nbsp;chronological&nbsp;order.
+          </SectionHead>
 
           <div className="grid grid-cols-12 gap-x-6">
             <div className="col-span-12 space-y-0">
@@ -378,15 +276,9 @@ export default function Home() {
       {/* ───────────────────── 02 / Selected Work (Projects) ───────────────────── */}
       <section id="selected" className="section border-t border-[hsl(var(--rule))]">
         <div className="editorial-container">
-          <div className="section-head">
-            <div className="col-span-12 md:col-span-3 flex flex-col gap-2">
-              <span className="section-index">§ 02 / Selected</span>
-              <span className="eyebrow">Projects</span>
-            </div>
-            <h2 className="col-span-12 md:col-span-9 display-lg">
-              A short reading list of what I&apos;ve&nbsp;built.
-            </h2>
-          </div>
+          <SectionHead index="§ 02 / Selected" eyebrow="Projects">
+            A short reading list of what I&apos;ve&nbsp;built.
+          </SectionHead>
 
           <div>
             {data.projects.map((project, i) => (
@@ -438,17 +330,11 @@ export default function Home() {
       {/* ───────────────────── 03 / Studies (Education + Skills) ───────────────────── */}
       <section id="studies" className="section border-t border-[hsl(var(--rule))]">
         <div className="editorial-container">
-          <div className="section-head">
-            <div className="col-span-12 md:col-span-3 flex flex-col gap-2">
-              <span className="section-index">§ 03 / Studies</span>
-              <span className="eyebrow">Education &amp; Competencies</span>
-            </div>
-            <h2 className="col-span-12 md:col-span-9 display-lg">
-              Where I studied,
-              <br />
-              and what I&apos;ve learned to&nbsp;use.
-            </h2>
-          </div>
+          <SectionHead index="§ 03 / Studies" eyebrow="Education & Competencies">
+            Where I studied,
+            <br />
+            and what I&apos;ve learned to&nbsp;use.
+          </SectionHead>
 
           <div className="grid grid-cols-12 gap-x-6 gap-y-16">
             {/* Education */}
@@ -509,9 +395,7 @@ export default function Home() {
                       className="grid grid-cols-12 gap-x-6 pt-6 border-t border-[hsl(var(--rule))]"
                     >
                       <div className="col-span-4">
-                        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                          {group.title}
-                        </span>
+                        <span className="eyebrow">{group.title}</span>
                       </div>
                       <div className="col-span-8 flex flex-wrap gap-x-5 gap-y-2">
                         {items.map((s) => (
@@ -533,17 +417,11 @@ export default function Home() {
       {/* ───────────────────── 04 / Contact ───────────────────── */}
       <section id="contact" className="section border-t border-[hsl(var(--rule))]">
         <div className="editorial-container">
-          <div className="section-head">
-            <div className="col-span-12 md:col-span-3 flex flex-col gap-2">
-              <span className="section-index">§ 04 / Contact</span>
-              <span className="eyebrow">Get in touch</span>
-            </div>
-            <h2 className="col-span-12 md:col-span-9 display-lg">
-              A good email beats a&nbsp;bad&nbsp;meeting.
-              <br />
-              <span className="italic text-[hsl(var(--primary))]">Say&nbsp;hello.</span>
-            </h2>
-          </div>
+          <SectionHead index="§ 04 / Contact" eyebrow="Get in touch">
+            A good email beats a&nbsp;bad&nbsp;meeting.
+            <br />
+            <span className="italic text-[hsl(var(--primary))]">Say&nbsp;hello.</span>
+          </SectionHead>
 
           <div className="grid grid-cols-12 gap-x-6 gap-y-12">
             <aside className="col-span-12 md:col-span-5 space-y-10 reveal">
@@ -596,74 +474,7 @@ export default function Home() {
               </div>
             </aside>
 
-            <form
-              onSubmit={handleSubmit}
-              className="col-span-12 md:col-span-7 space-y-8 reveal"
-            >
-              <div className="grid sm:grid-cols-2 gap-6">
-                <div className="form-field">
-                  <label htmlFor="name" className="eyebrow">
-                    01 · Name
-                  </label>
-                  <input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="form-input"
-                    placeholder="Your name"
-                  />
-                </div>
-                <div className="form-field">
-                  <label htmlFor="email" className="eyebrow">
-                    02 · Email
-                  </label>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="form-input"
-                    placeholder="you@domain.com"
-                  />
-                </div>
-              </div>
-
-              <div className="form-field">
-                <label htmlFor="message" className="eyebrow">
-                  03 · Message
-                </label>
-                <textarea
-                  id="message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  required
-                  rows={5}
-                  className="form-input resize-none"
-                  placeholder="Tell me what you're building…"
-                />
-              </div>
-
-              <div className="flex items-center justify-between gap-4 pt-2">
-                <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                  {formSuccess
-                    ? "— Message received. Back to you soon."
-                    : "Replies usually within 24h."}
-                </span>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="btn btn-solid"
-                >
-                  {isSubmitting ? "Sending…" : "Send message"}
-                  {!isSubmitting && <ArrowUpRight className="w-4 h-4" />}
-                </button>
-              </div>
-            </form>
+            <ContactForm email={data.personalInfo.email} />
           </div>
         </div>
       </section>
