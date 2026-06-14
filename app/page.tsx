@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/site-header"
 import { RevealOnScroll } from "@/components/reveal-on-scroll"
 import { ContactForm } from "@/components/contact-form"
 import { SurfaceToggle } from "@/components/surface-toggle"
+import { ProjectDiagram } from "@/components/project-diagram"
 
 const formatMonth = (value: string) => {
   if (!value) return ""
@@ -306,11 +307,15 @@ export default function Home() {
                 rel="noreferrer"
                 className="project-row group reveal"
               >
-                <span className="font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground pt-2">
+                <span className="project-num font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground pt-2">
                   {String(i + 1).padStart(2, "0")}
                 </span>
 
-                <div className="space-y-2">
+                <div className="project-thumb" aria-hidden="true">
+                  <ProjectDiagram kind={project.diagram} />
+                </div>
+
+                <div className="project-body space-y-2">
                   <h3 className="project-title display-md">
                     {project.title}
                   </h3>
@@ -332,7 +337,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-2 pt-2">
+                <div className="project-right flex flex-col items-end gap-2 pt-2">
                   <span className="font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground">
                     {project.year}
                   </span>

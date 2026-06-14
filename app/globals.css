@@ -245,12 +245,47 @@
 /* --------- Project row (editorial list) --------- */
 .project-row {
   display: grid;
-  grid-template-columns: 3rem 1fr auto;
+  grid-template-columns: 3rem 156px 1fr auto;
   gap: 1.5rem;
-  align-items: baseline;
+  align-items: start;
   padding: 1.75rem 0;
   border-top: 1px solid hsl(var(--rule));
   transition: padding 0.4s cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+/* Per-project hairline diagram thumbnail (static, paper-and-ink) */
+.project-thumb {
+  width: 140px;
+  height: 100px;
+  border: 1px solid hsl(var(--rule));
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  position: relative;
+  overflow: hidden;
+  color: hsl(var(--foreground) / 0.72);
+  transition: border-color var(--dur) ease;
+}
+.project-thumb svg { display: block; width: 100%; height: 100%; }
+.project-row:hover .project-thumb { border-color: hsl(var(--foreground) / 0.4); }
+
+@media (max-width: 768px) {
+  .project-row { grid-template-columns: 3rem 1fr auto; gap: 0.85rem 0.9rem; }
+  .project-num   { grid-area: 1 / 1 / 2 / 2; }
+  .project-right { grid-area: 1 / 3 / 2 / 4; }
+  .project-thumb { grid-area: 2 / 1 / 3 / 4; width: 100%; height: 84px; }
+  .project-body  { grid-area: 3 / 1 / 4 / 4; }
+}
+
+/* Project-diagram motion — quiet loops, suppressed under reduced-motion */
+@keyframes zc-pulse        { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+@keyframes zc-scan-x       { 0% { transform: translateX(-2px); opacity: 0; } 8%, 92% { opacity: 1; } 100% { transform: translateX(140px); opacity: 0; } }
+@keyframes zc-gesture      { 0% { stroke-dashoffset: 200; } 70%, 100% { stroke-dashoffset: 0; } }
+@keyframes zc-reveal-seq   { 0%, 8% { opacity: 0; transform: scale(0.85); } 15%, 100% { opacity: 1; transform: scale(1); } }
+@keyframes zc-bar-grow     { 0% { transform: scaleY(0); } 100% { transform: scaleY(1); } }
+@keyframes zc-dot-traverse { 0% { offset-distance: 0%; opacity: 0; } 5% { opacity: 1; } 95% { opacity: 1; } 100% { offset-distance: 100%; opacity: 0; } }
+@keyframes zc-wave-flow    { 0% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -80; } }
+@media (prefers-reduced-motion: reduce) {
+  .project-thumb svg * { animation: none !important; }
 }
 
 .project-row:last-of-type {
