@@ -40,8 +40,45 @@
     --ring: 12 55% 42%;
 
     --rule: 30 12% 75%;
+    --available-dot: 140 45% 38%;
 
     --radius: 0.25rem;
+    --radius-pill: 999px;
+
+    /* ── v2 · Paper · Ink · Glass — surface elevation ramp (paper) ── */
+    --surface-ground: hsl(40 33% 96%);
+    --surface-sunken: hsl(38 22% 91%);
+    --surface-raised: hsl(44 42% 98%);
+    --surface-plate:  hsl(35 18% 89%);
+    --grain-ink:      hsl(30 8% 12% / 0.04);
+
+    /* ── glass material (paper) ── */
+    --glass-fill:         hsl(44 40% 98% / 0.27);
+    --glass-fill-thin:    hsl(44 40% 98% / 0.165);
+    --glass-fill-thick:   hsl(44 40% 98% / 0.41);
+    --glass-border:       hsl(40 30% 100% / 0.72);
+    --glass-edge:         hsl(0 0% 100% / 0.70);
+    --glass-sheen:        hsl(0 0% 100% / 0.45);
+    --glass-tint-refract: hsl(12 55% 50% / 0.10);
+    --glass-oxide-fill:   hsl(12 55% 50% / 0.12);
+    --glass-oxide-border: hsl(12 55% 52% / 0.42);
+    --glass-oxide-edge:   hsl(18 70% 72% / 0.55);
+    --glass-blur:        18px;
+    --glass-blur-thin:   12px;
+    --glass-blur-thick:  28px;
+    --glass-shadow:      0 10px 34px -12px hsl(30 8% 12% / 0.22);
+    --glass-shadow-lg:   0 26px 60px -20px hsl(30 8% 12% / 0.30);
+    --radius-glass:      16px;
+    --radius-glass-lg:   22px;
+
+    /* ── sharpened display + motion ── */
+    --display-2xl-size: clamp(4rem, 17vw, 14rem);
+    --display-2xl-lh:   0.82;
+    --display-2xl-tr:   -0.045em;
+    --kicker-size:      0.6875rem;
+    --kicker-tracking:  0.34em;
+    --ease-glass:       cubic-bezier(0.32, 0.72, 0, 1);
+    --dur-settle:       520ms;
   }
 }
 
@@ -251,19 +288,6 @@
   pointer-events: none;
 }
 
-/* --------- Ticker (marquee-style) --------- */
-.ticker-track {
-  display: flex;
-  gap: 3rem;
-  white-space: nowrap;
-  animation: ticker 40s linear infinite;
-}
-
-@keyframes ticker {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-
 /* --------- Form --------- */
 .form-field {
   display: flex;
@@ -319,4 +343,276 @@
 .reveal.is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ============================================================
+   v2 — Paper · Ink · Glass
+   Static content stays paper-and-ink; only interactive /
+   elevated surfaces become glass.
+   ============================================================ */
+
+/* ── INK MODE — the sanctioned dark surface ───────────────── */
+html[data-surface="ink"] {
+  --background: 34 16% 9%;
+  --foreground: 38 30% 92%;
+  --card: 34 16% 9%;
+  --card-foreground: 38 30% 92%;
+  --popover: 34 16% 9%;
+  --popover-foreground: 38 30% 92%;
+  --primary: 14 72% 60%;
+  --primary-foreground: 34 16% 9%;
+  --secondary: 38 22% 82%;
+  --secondary-foreground: 34 16% 9%;
+  --muted: 32 13% 14%;
+  --muted-foreground: 36 13% 64%;
+  --accent: 14 72% 60%;
+  --accent-foreground: 34 16% 9%;
+  --destructive: 0 62% 45%;
+  --border: 36 10% 32%;
+  --input: 36 10% 32%;
+  --ring: 14 72% 60%;
+  --rule: 36 10% 28%;
+  --available-dot: 142 48% 56%;
+
+  --surface-ground: hsl(34 16% 9%);
+  --surface-sunken: hsl(32 14% 7%);
+  --surface-raised: hsl(33 13% 13%);
+  --surface-plate:  hsl(32 12% 12%);
+  --grain-ink:      hsl(40 60% 96% / 0.035);
+
+  --glass-fill:         hsl(40 40% 96% / 0.07);
+  --glass-fill-thin:    hsl(40 40% 96% / 0.045);
+  --glass-fill-thick:   hsl(40 40% 96% / 0.13);
+  --glass-border:       hsl(40 50% 96% / 0.14);
+  --glass-edge:         hsl(40 70% 96% / 0.22);
+  --glass-sheen:        hsl(40 70% 96% / 0.16);
+  --glass-tint-refract: hsl(14 72% 58% / 0.14);
+  --glass-oxide-fill:   hsl(14 72% 56% / 0.22);
+  --glass-oxide-border: hsl(14 72% 62% / 0.5);
+  --glass-oxide-edge:   hsl(20 80% 72% / 0.5);
+  --glass-shadow:       0 14px 40px -14px hsl(0 0% 0% / 0.55);
+  --glass-shadow-lg:    0 30px 70px -22px hsl(0 0% 0% / 0.66);
+}
+
+/* page surface follows the mode; smooth flip */
+html { background: hsl(var(--background)); }
+body {
+  transition: background var(--dur-slow) var(--ease-glass),
+              color var(--dur-slow) var(--ease-glass);
+}
+
+/* soft oxide depth + grain behind everything, so glass has something to refract */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(55% 45% at 86% 8%, hsl(var(--primary) / 0.11), transparent 62%),
+    radial-gradient(48% 42% at 4% 82%, hsl(var(--primary) / 0.08), transparent 62%);
+}
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.5;
+  background-image: radial-gradient(var(--grain-ink) 0.5px, transparent 0.5px);
+  background-size: 4px 4px;
+}
+
+/* pointer-tracking lens coordinates — registered, not component tokens */
+@property --mx { syntax: "<length-percentage>"; inherits: true; initial-value: 50%; }
+@property --my { syntax: "<length-percentage>"; inherits: true; initial-value: 50%; }
+
+/* ── GLASS utility classes ────────────────────────────────── */
+.glass {
+  position: relative; isolation: isolate;
+  background-color: var(--glass-fill);
+  background-image: linear-gradient(115deg, transparent 34%, var(--glass-edge) 49%, transparent 64%);
+  background-size: 300% 100%; background-repeat: no-repeat; background-position: 150% 0;
+  animation: glass-sheen 9s var(--ease-glass) infinite;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-glass);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+}
+@keyframes glass-sheen { to { background-position: -120% 0; } }
+.glass::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background:
+    radial-gradient(130% 90% at 10% -8%, var(--glass-sheen), transparent 44%),
+    radial-gradient(90% 80% at 108% 112%, var(--glass-tint-refract), transparent 52%),
+    linear-gradient(180deg, var(--glass-tint-refract), transparent 26%);
+  mix-blend-mode: screen; z-index: -1;
+}
+.glass::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  z-index: -1; padding: 1px;
+  background: conic-gradient(from 128deg,
+      var(--glass-edge), transparent 20%,
+      transparent 56%, var(--glass-tint-refract) 75%,
+      transparent 90%, var(--glass-edge));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+}
+.glass-thin {
+  -webkit-backdrop-filter: blur(var(--glass-blur-thin)) saturate(1.4);
+  backdrop-filter: blur(var(--glass-blur-thin)) saturate(1.4);
+  background-color: var(--glass-fill-thin);
+}
+@media (prefers-reduced-motion: reduce) { .glass { animation: none; } }
+
+.display-2xl {
+  font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  font-size: var(--display-2xl-size);
+  line-height: var(--display-2xl-lh);
+  letter-spacing: var(--display-2xl-tr);
+}
+.kicker {
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
+  font-size: var(--kicker-size);
+  text-transform: uppercase;
+  letter-spacing: var(--kicker-tracking);
+  color: hsl(var(--muted-foreground));
+}
+.plate {
+  position: relative;
+  background: var(--surface-plate);
+  border: 1px solid hsl(var(--rule));
+  border-radius: var(--radius);
+}
+
+/* ── Top bar — thin frosted glass ─────────────────────────── */
+.site-topbar {
+  background: var(--glass-fill-thin);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
+}
+
+/* ── Status pill — glass ──────────────────────────────────── */
+.status-pill {
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-pill);
+  background: var(--glass-fill);
+  border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
+}
+
+/* ── Buttons — glass pill; solid CTA → oxide glass; liquid transform ── */
+.btn {
+  --mx: 50%; --my: 50%;
+  position: relative; isolation: isolate; overflow: hidden;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-fill-thick);
+  color: hsl(var(--foreground));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+  transition: transform var(--dur-settle) var(--ease-glass),
+              box-shadow var(--dur) var(--ease-glass),
+              background var(--dur) var(--ease-glass),
+              border-color var(--dur) var(--ease-glass);
+}
+.btn::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  pointer-events: none; opacity: 0;
+  background: radial-gradient(78px 78px at var(--mx) var(--my), var(--glass-edge), transparent 66%);
+  transition: opacity var(--dur) ease;
+}
+.btn:hover::before { opacity: 1; }
+.btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: var(--glass-shadow-lg), inset 0 1px 0 var(--glass-edge);
+}
+.btn:active { transform: translateY(0) scale(0.965); transition-duration: 130ms; }
+
+.btn-solid {
+  background: var(--glass-oxide-fill);
+  border-color: var(--glass-oxide-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-oxide-edge);
+  color: hsl(var(--foreground));
+}
+.btn-solid::before {
+  background: radial-gradient(78px 78px at var(--mx) var(--my), var(--glass-oxide-edge), transparent 66%);
+}
+.btn-solid:hover {
+  background: var(--glass-oxide-fill);
+  border-color: var(--glass-oxide-border);
+  box-shadow: var(--glass-shadow-lg), inset 0 1px 0 var(--glass-oxide-edge);
+}
+.btn-ghost { background: var(--glass-fill); }
+.btn-ghost:hover { background: var(--glass-fill-thick); color: hsl(var(--foreground)); }
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+  .btn:hover, .btn:active { transform: none; }
+}
+
+/* ── Form fields — glass inputs with oxide focus ──────────── */
+.form-input {
+  background: var(--glass-fill);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-glass);
+  padding: 0.85rem 1rem;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
+}
+.form-input:focus {
+  border-color: hsl(var(--primary) / 0.6);
+  box-shadow: inset 0 1px 0 var(--glass-edge), 0 0 0 3px hsl(var(--primary) / 0.12);
+}
+
+/* ── Photo frame — glass edge + soft lift ─────────────────── */
+.photo-frame {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-glass);
+  box-shadow: var(--glass-shadow);
+}
+
+/* ── Focus index — a glass plate (replaces the marquee) ───── */
+.focus-section { padding-block: clamp(2.5rem, 6vh, 4.5rem); }
+.focus-plate {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-glass);
+  padding: 1.6rem 1.9rem;
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+}
+.focus-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 1rem;
+}
+.focus-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 2rem; }
+@media (max-width: 700px) { .focus-grid { grid-template-columns: 1fr; } }
+.focus-item {
+  display: grid; grid-template-columns: 32px 1fr auto; gap: 0.625rem;
+  align-items: baseline; padding: 0.5rem 0;
+  border-top: 1px solid var(--glass-border);
+}
+.focus-w {
+  font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
+  font-style: italic; font-size: 1.35rem; line-height: 1.1;
+  color: hsl(var(--foreground)); letter-spacing: -0.01em;
+}
+.focus-star { color: hsl(var(--primary)); font-size: 0.75rem; }
+
+/* ── Surface (Paper/Ink) toggle — fixed glass pill ────────── */
+.surf-toggle {
+  position: fixed; right: 18px; bottom: 18px; z-index: 200;
+  display: inline-flex; gap: 2px; padding: 4px;
+  border-radius: var(--radius-pill);
+}
+.surf-toggle button {
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: hsl(var(--muted-foreground)); background: transparent; border: 0;
+  cursor: pointer; padding: 0.45rem 0.8rem; border-radius: var(--radius-pill);
+  transition: color var(--dur) ease, background var(--dur) ease;
+}
+.surf-toggle button[aria-pressed="true"] {
+  color: hsl(var(--foreground));
+  background: var(--glass-fill-thick);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
 }

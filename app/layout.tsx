@@ -34,7 +34,16 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-surface="paper">
+      <head>
+        {/* Apply the saved Paper/Ink surface before paint to avoid a flash. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var s=localStorage.getItem('zc-surface');if(s==='ink'||s==='paper')document.documentElement.setAttribute('data-surface',s)}catch(e){}",
+          }}
+        />
+      </head>
       <body
         className={`${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans`}
       >

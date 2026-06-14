@@ -5,6 +5,7 @@ import { defaultData, type Skill } from "@/lib/default-data"
 import { SiteHeader } from "@/components/site-header"
 import { RevealOnScroll } from "@/components/reveal-on-scroll"
 import { ContactForm } from "@/components/contact-form"
+import { SurfaceToggle } from "@/components/surface-toggle"
 
 const formatMonth = (value: string) => {
   if (!value) return ""
@@ -36,6 +37,8 @@ const tickerWords = [
   "Interaction Design",
 ]
 
+const focusRoman = ["i.", "ii.", "iii.", "iv.", "v.", "vi.", "vii.", "viii.", "ix."]
+
 function SectionHead({
   index,
   eyebrow,
@@ -60,9 +63,10 @@ export default function Home() {
   const data = defaultData
 
   return (
-    <main id="top" className="min-h-screen bg-background text-foreground">
+    <main id="top" className="relative z-10 min-h-screen text-foreground">
       <SiteHeader />
       <RevealOnScroll />
+      <SurfaceToggle />
 
       {/* ───────────────────── Hero ───────────────────── */}
       <section className="pt-32 pb-20 md:pt-40 md:pb-28">
@@ -124,15 +128,24 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ───────────────────── Ticker ───────────────────── */}
-      <section className="border-y border-[hsl(var(--rule))] py-6 overflow-hidden">
-        <div className="ticker-track font-serif text-3xl md:text-5xl italic">
-          {[...tickerWords, ...tickerWords].map((word, i) => (
-            <span key={i} className="inline-flex items-center gap-12">
-              {word}
-              <span className="text-[hsl(var(--primary))]">✦</span>
-            </span>
-          ))}
+      {/* ───────────────────── Focus index (glass plate) ───────────────────── */}
+      <section className="focus-section">
+        <div className="editorial-container">
+          <div className="focus-plate">
+            <div className="focus-head">
+              <span className="eyebrow">§ Focus / An index</span>
+              <span className="eyebrow">Nine areas · 2026</span>
+            </div>
+            <div className="focus-grid">
+              {tickerWords.map((word, i) => (
+                <div key={word} className="focus-item">
+                  <span className="eyebrow">{focusRoman[i]}</span>
+                  <span className="focus-w">{word}</span>
+                  <span className="focus-star">✦</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
