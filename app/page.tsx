@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
 import Link from "next/link"
 import { ArrowUpRight, Github, Linkedin, Mail, MapPin, Phone } from "lucide-react"
 import { defaultData, type Skill } from "@/lib/default-data"
@@ -131,14 +131,18 @@ export default function Home() {
       {/* ───────────────────── Focus index (glass plate) ───────────────────── */}
       <section className="focus-section">
         <div className="editorial-container">
-          <div className="focus-plate">
+          <div className="focus-plate reveal">
             <div className="focus-head">
               <span className="eyebrow">§ Focus / An index</span>
               <span className="eyebrow">Nine areas · 2026</span>
             </div>
             <div className="focus-grid">
               {tickerWords.map((word, i) => (
-                <div key={word} className="focus-item">
+                <div
+                  key={word}
+                  className="focus-item"
+                  style={{ "--i": i } as CSSProperties}
+                >
                   <span className="eyebrow">{focusRoman[i]}</span>
                   <span className="focus-w">{word}</span>
                   <span className="focus-star">✦</span>

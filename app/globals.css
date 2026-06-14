@@ -41,6 +41,7 @@
 
     --rule: 30 12% 75%;
     --available-dot: 140 45% 38%;
+    --depth: 12 55% 50%;            /* depth-glow hue behind glass */
 
     --radius: 0.25rem;
     --radius-pill: 999px;
@@ -353,45 +354,46 @@
 
 /* ── INK MODE — the sanctioned dark surface ───────────────── */
 html[data-surface="ink"] {
-  --background: 34 16% 9%;
-  --foreground: 38 30% 92%;
-  --card: 34 16% 9%;
-  --card-foreground: 38 30% 92%;
-  --popover: 34 16% 9%;
-  --popover-foreground: 38 30% 92%;
-  --primary: 14 72% 60%;
-  --primary-foreground: 34 16% 9%;
-  --secondary: 38 22% 82%;
-  --secondary-foreground: 34 16% 9%;
-  --muted: 32 13% 14%;
-  --muted-foreground: 36 13% 64%;
-  --accent: 14 72% 60%;
-  --accent-foreground: 34 16% 9%;
-  --destructive: 0 62% 45%;
-  --border: 36 10% 32%;
-  --input: 36 10% 32%;
-  --ring: 14 72% 60%;
-  --rule: 36 10% 28%;
-  --available-dot: 142 48% 56%;
+  --background: 216 22% 10%;        /* cool blue-graphite ground (~#14181F) */
+  --foreground: 210 17% 90%;        /* cool paper-white */
+  --card: 216 22% 10%;
+  --card-foreground: 210 17% 90%;
+  --popover: 216 22% 10%;
+  --popover-foreground: 210 17% 90%;
+  --primary: 14 70% 62%;            /* oxide kept as the one small accent */
+  --primary-foreground: 216 22% 10%;
+  --secondary: 210 16% 82%;
+  --secondary-foreground: 216 22% 10%;
+  --muted: 216 18% 15%;
+  --muted-foreground: 214 12% 64%;
+  --accent: 14 70% 62%;
+  --accent-foreground: 216 22% 10%;
+  --destructive: 0 62% 52%;
+  --border: 215 13% 30%;
+  --input: 215 13% 30%;
+  --ring: 14 70% 62%;
+  --rule: 215 13% 26%;
+  --available-dot: 150 46% 56%;
+  --depth: 212 46% 62%;             /* cool-blue depth glow */
 
-  --surface-ground: hsl(34 16% 9%);
-  --surface-sunken: hsl(32 14% 7%);
-  --surface-raised: hsl(33 13% 13%);
-  --surface-plate:  hsl(32 12% 12%);
-  --grain-ink:      hsl(40 60% 96% / 0.035);
+  --surface-ground: hsl(216 22% 10%);
+  --surface-sunken: hsl(218 24% 7%);
+  --surface-raised: hsl(216 18% 15%);
+  --surface-plate:  hsl(216 17% 13%);
+  --grain-ink:      hsl(210 40% 96% / 0.035);
 
-  --glass-fill:         hsl(40 40% 96% / 0.07);
-  --glass-fill-thin:    hsl(40 40% 96% / 0.045);
-  --glass-fill-thick:   hsl(40 40% 96% / 0.13);
-  --glass-border:       hsl(40 50% 96% / 0.14);
-  --glass-edge:         hsl(40 70% 96% / 0.22);
-  --glass-sheen:        hsl(40 70% 96% / 0.16);
-  --glass-tint-refract: hsl(14 72% 58% / 0.14);
-  --glass-oxide-fill:   hsl(14 72% 56% / 0.22);
-  --glass-oxide-border: hsl(14 72% 62% / 0.5);
-  --glass-oxide-edge:   hsl(20 80% 72% / 0.5);
-  --glass-shadow:       0 14px 40px -14px hsl(0 0% 0% / 0.55);
-  --glass-shadow-lg:    0 30px 70px -22px hsl(0 0% 0% / 0.66);
+  --glass-fill:         hsl(214 32% 92% / 0.07);
+  --glass-fill-thin:    hsl(214 32% 92% / 0.045);
+  --glass-fill-thick:   hsl(214 32% 92% / 0.13);
+  --glass-border:       hsl(212 40% 94% / 0.14);
+  --glass-edge:         hsl(208 55% 95% / 0.22);
+  --glass-sheen:        hsl(208 55% 95% / 0.16);
+  --glass-tint-refract: hsl(212 48% 64% / 0.12);
+  --glass-oxide-fill:   hsl(14 70% 56% / 0.20);
+  --glass-oxide-border: hsl(14 70% 62% / 0.48);
+  --glass-oxide-edge:   hsl(20 78% 72% / 0.48);
+  --glass-shadow:       0 14px 40px -14px hsl(216 35% 3% / 0.6);
+  --glass-shadow-lg:    0 30px 70px -22px hsl(216 35% 3% / 0.72);
 }
 
 /* page surface follows the mode; smooth flip */
@@ -405,8 +407,8 @@ body {
 body::before {
   content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(55% 45% at 86% 8%, hsl(var(--primary) / 0.11), transparent 62%),
-    radial-gradient(48% 42% at 4% 82%, hsl(var(--primary) / 0.08), transparent 62%);
+    radial-gradient(55% 45% at 86% 8%, hsl(var(--depth) / 0.11), transparent 62%),
+    radial-gradient(48% 42% at 4% 82%, hsl(var(--depth) / 0.08), transparent 62%);
 }
 body::after {
   content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.5;
@@ -595,8 +597,28 @@ body::after {
   font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
   font-style: italic; font-size: 1.35rem; line-height: 1.1;
   color: hsl(var(--foreground)); letter-spacing: -0.01em;
+  /* slow oxide highlight travels through the index, i → ix, then loops */
+  animation: focus-pulse 7.2s var(--ease-glass) infinite;
+  animation-delay: calc(var(--i, 0) * 0.42s);
 }
-.focus-star { color: hsl(var(--primary)); font-size: 0.75rem; }
+.focus-star {
+  color: hsl(var(--primary)); font-size: 0.75rem;
+  opacity: 0.4;
+  animation: focus-star 7.2s var(--ease-glass) infinite;
+  animation-delay: calc(var(--i, 0) * 0.42s);
+}
+@keyframes focus-pulse {
+  0%, 9%, 100% { color: hsl(var(--foreground)); text-shadow: none; }
+  3% { color: hsl(var(--primary)); text-shadow: 0 0 16px hsl(var(--primary) / 0.45); }
+}
+@keyframes focus-star {
+  0%, 9%, 100% { opacity: 0.4; transform: scale(1); }
+  3% { opacity: 1; transform: scale(1.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-w, .focus-star { animation: none; }
+  .focus-star { opacity: 1; }
+}
 
 /* ── Surface (Paper/Ink) toggle — fixed glass pill ────────── */
 .surf-toggle {
