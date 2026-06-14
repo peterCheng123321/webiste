@@ -50,7 +50,7 @@ export function SiteHeader() {
   }, [])
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 bg-background/85 backdrop-blur-md border-b border-[hsl(var(--rule))]">
+    <header className="site-topbar fixed top-0 inset-x-0 z-50">
       <div className="editorial-container flex items-center justify-between py-4">
         <Link href="#top" className="flex items-baseline gap-3">
           <span className="font-serif text-2xl leading-none">Zhongquan Cheng</span>
@@ -78,7 +78,7 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="hidden lg:flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+        <div className="status-pill hidden lg:flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
           <span className="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse" />
           <span>Available · St. Louis</span>
           {currentTime && <span className="opacity-70">· {currentTime}</span>}

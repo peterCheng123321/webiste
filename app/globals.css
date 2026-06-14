@@ -40,8 +40,46 @@
     --ring: 12 55% 42%;
 
     --rule: 30 12% 75%;
+    --available-dot: 140 45% 38%;
+    --depth: 12 55% 50%;            /* depth-glow hue behind glass */
 
     --radius: 0.25rem;
+    --radius-pill: 999px;
+
+    /* ── v2 · Paper · Ink · Glass — surface elevation ramp (paper) ── */
+    --surface-ground: hsl(40 33% 96%);
+    --surface-sunken: hsl(38 22% 91%);
+    --surface-raised: hsl(44 42% 98%);
+    --surface-plate:  hsl(35 18% 89%);
+    --grain-ink:      hsl(30 8% 12% / 0.04);
+
+    /* ── glass material (paper) ── */
+    --glass-fill:         hsl(44 40% 98% / 0.27);
+    --glass-fill-thin:    hsl(44 40% 98% / 0.165);
+    --glass-fill-thick:   hsl(44 40% 98% / 0.41);
+    --glass-border:       hsl(40 30% 100% / 0.72);
+    --glass-edge:         hsl(0 0% 100% / 0.70);
+    --glass-sheen:        hsl(0 0% 100% / 0.45);
+    --glass-tint-refract: hsl(12 55% 50% / 0.10);
+    --glass-oxide-fill:   hsl(12 55% 50% / 0.12);
+    --glass-oxide-border: hsl(12 55% 52% / 0.42);
+    --glass-oxide-edge:   hsl(18 70% 72% / 0.55);
+    --glass-blur:        18px;
+    --glass-blur-thin:   12px;
+    --glass-blur-thick:  28px;
+    --glass-shadow:      0 10px 34px -12px hsl(30 8% 12% / 0.22);
+    --glass-shadow-lg:   0 26px 60px -20px hsl(30 8% 12% / 0.30);
+    --radius-glass:      16px;
+    --radius-glass-lg:   22px;
+
+    /* ── sharpened display + motion ── */
+    --display-2xl-size: clamp(4rem, 17vw, 14rem);
+    --display-2xl-lh:   0.82;
+    --display-2xl-tr:   -0.045em;
+    --kicker-size:      0.6875rem;
+    --kicker-tracking:  0.34em;
+    --ease-glass:       cubic-bezier(0.32, 0.72, 0, 1);
+    --dur-settle:       520ms;
   }
 }
 
@@ -207,12 +245,47 @@
 /* --------- Project row (editorial list) --------- */
 .project-row {
   display: grid;
-  grid-template-columns: 3rem 1fr auto;
+  grid-template-columns: 3rem 156px 1fr auto;
   gap: 1.5rem;
-  align-items: baseline;
+  align-items: start;
   padding: 1.75rem 0;
   border-top: 1px solid hsl(var(--rule));
   transition: padding 0.4s cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+/* Per-project hairline diagram thumbnail (static, paper-and-ink) */
+.project-thumb {
+  width: 140px;
+  height: 100px;
+  border: 1px solid hsl(var(--rule));
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  position: relative;
+  overflow: hidden;
+  color: hsl(var(--foreground) / 0.72);
+  transition: border-color var(--dur) ease;
+}
+.project-thumb svg { display: block; width: 100%; height: 100%; }
+.project-row:hover .project-thumb { border-color: hsl(var(--foreground) / 0.4); }
+
+@media (max-width: 768px) {
+  .project-row { grid-template-columns: 3rem 1fr auto; gap: 0.85rem 0.9rem; }
+  .project-num   { grid-area: 1 / 1 / 2 / 2; }
+  .project-right { grid-area: 1 / 3 / 2 / 4; }
+  .project-thumb { grid-area: 2 / 1 / 3 / 4; width: 100%; height: 84px; }
+  .project-body  { grid-area: 3 / 1 / 4 / 4; }
+}
+
+/* Project-diagram motion — quiet loops, suppressed under reduced-motion */
+@keyframes zc-pulse        { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+@keyframes zc-scan-x       { 0% { transform: translateX(-2px); opacity: 0; } 8%, 92% { opacity: 1; } 100% { transform: translateX(140px); opacity: 0; } }
+@keyframes zc-gesture      { 0% { stroke-dashoffset: 200; } 70%, 100% { stroke-dashoffset: 0; } }
+@keyframes zc-reveal-seq   { 0%, 8% { opacity: 0; transform: scale(0.85); } 15%, 100% { opacity: 1; transform: scale(1); } }
+@keyframes zc-bar-grow     { 0% { transform: scaleY(0); } 100% { transform: scaleY(1); } }
+@keyframes zc-dot-traverse { 0% { offset-distance: 0%; opacity: 0; } 5% { opacity: 1; } 95% { opacity: 1; } 100% { offset-distance: 100%; opacity: 0; } }
+@keyframes zc-wave-flow    { 0% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -80; } }
+@media (prefers-reduced-motion: reduce) {
+  .project-thumb svg * { animation: none !important; }
 }
 
 .project-row:last-of-type {
@@ -249,19 +322,6 @@
     hsl(var(--foreground) / 0.08) 100%
   );
   pointer-events: none;
-}
-
-/* --------- Ticker (marquee-style) --------- */
-.ticker-track {
-  display: flex;
-  gap: 3rem;
-  white-space: nowrap;
-  animation: ticker 40s linear infinite;
-}
-
-@keyframes ticker {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
 }
 
 /* --------- Form --------- */
@@ -319,4 +379,297 @@
 .reveal.is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ============================================================
+   v2 — Paper · Ink · Glass
+   Static content stays paper-and-ink; only interactive /
+   elevated surfaces become glass.
+   ============================================================ */
+
+/* ── INK MODE — the sanctioned dark surface ───────────────── */
+html[data-surface="ink"] {
+  --background: 216 22% 10%;        /* cool blue-graphite ground (~#14181F) */
+  --foreground: 210 17% 90%;        /* cool paper-white */
+  --card: 216 22% 10%;
+  --card-foreground: 210 17% 90%;
+  --popover: 216 22% 10%;
+  --popover-foreground: 210 17% 90%;
+  --primary: 14 70% 62%;            /* oxide kept as the one small accent */
+  --primary-foreground: 216 22% 10%;
+  --secondary: 210 16% 82%;
+  --secondary-foreground: 216 22% 10%;
+  --muted: 216 18% 15%;
+  --muted-foreground: 214 12% 64%;
+  --accent: 14 70% 62%;
+  --accent-foreground: 216 22% 10%;
+  --destructive: 0 62% 52%;
+  --border: 215 13% 30%;
+  --input: 215 13% 30%;
+  --ring: 14 70% 62%;
+  --rule: 215 13% 26%;
+  --available-dot: 150 46% 56%;
+  --depth: 212 46% 62%;             /* cool-blue depth glow */
+
+  --surface-ground: hsl(216 22% 10%);
+  --surface-sunken: hsl(218 24% 7%);
+  --surface-raised: hsl(216 18% 15%);
+  --surface-plate:  hsl(216 17% 13%);
+  --grain-ink:      hsl(210 40% 96% / 0.035);
+
+  --glass-fill:         hsl(214 32% 92% / 0.07);
+  --glass-fill-thin:    hsl(214 32% 92% / 0.045);
+  --glass-fill-thick:   hsl(214 32% 92% / 0.13);
+  --glass-border:       hsl(212 40% 94% / 0.14);
+  --glass-edge:         hsl(208 55% 95% / 0.22);
+  --glass-sheen:        hsl(208 55% 95% / 0.16);
+  --glass-tint-refract: hsl(212 48% 64% / 0.12);
+  --glass-oxide-fill:   hsl(14 70% 56% / 0.20);
+  --glass-oxide-border: hsl(14 70% 62% / 0.48);
+  --glass-oxide-edge:   hsl(20 78% 72% / 0.48);
+  --glass-shadow:       0 14px 40px -14px hsl(216 35% 3% / 0.6);
+  --glass-shadow-lg:    0 30px 70px -22px hsl(216 35% 3% / 0.72);
+}
+
+/* page surface follows the mode; smooth flip */
+html { background: hsl(var(--background)); }
+body {
+  transition: background var(--dur-slow) var(--ease-glass),
+              color var(--dur-slow) var(--ease-glass);
+}
+
+/* soft oxide depth + grain behind everything, so glass has something to refract */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(55% 45% at 86% 8%, hsl(var(--depth) / 0.11), transparent 62%),
+    radial-gradient(48% 42% at 4% 82%, hsl(var(--depth) / 0.08), transparent 62%);
+}
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.5;
+  background-image: radial-gradient(var(--grain-ink) 0.5px, transparent 0.5px);
+  background-size: 4px 4px;
+}
+
+/* pointer-tracking lens coordinates — registered, not component tokens */
+@property --mx { syntax: "<length-percentage>"; inherits: true; initial-value: 50%; }
+@property --my { syntax: "<length-percentage>"; inherits: true; initial-value: 50%; }
+
+/* ── GLASS utility classes ────────────────────────────────── */
+.glass {
+  position: relative; isolation: isolate;
+  background-color: var(--glass-fill);
+  background-image: linear-gradient(115deg, transparent 34%, var(--glass-edge) 49%, transparent 64%);
+  background-size: 300% 100%; background-repeat: no-repeat; background-position: 150% 0;
+  animation: glass-sheen 9s var(--ease-glass) infinite;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-glass);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+}
+@keyframes glass-sheen { to { background-position: -120% 0; } }
+.glass::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background:
+    radial-gradient(130% 90% at 10% -8%, var(--glass-sheen), transparent 44%),
+    radial-gradient(90% 80% at 108% 112%, var(--glass-tint-refract), transparent 52%),
+    linear-gradient(180deg, var(--glass-tint-refract), transparent 26%);
+  mix-blend-mode: screen; z-index: -1;
+}
+.glass::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  z-index: -1; padding: 1px;
+  background: conic-gradient(from 128deg,
+      var(--glass-edge), transparent 20%,
+      transparent 56%, var(--glass-tint-refract) 75%,
+      transparent 90%, var(--glass-edge));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+}
+.glass-thin {
+  -webkit-backdrop-filter: blur(var(--glass-blur-thin)) saturate(1.4);
+  backdrop-filter: blur(var(--glass-blur-thin)) saturate(1.4);
+  background-color: var(--glass-fill-thin);
+}
+@media (prefers-reduced-motion: reduce) { .glass { animation: none; } }
+
+.display-2xl {
+  font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  font-size: var(--display-2xl-size);
+  line-height: var(--display-2xl-lh);
+  letter-spacing: var(--display-2xl-tr);
+}
+.kicker {
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
+  font-size: var(--kicker-size);
+  text-transform: uppercase;
+  letter-spacing: var(--kicker-tracking);
+  color: hsl(var(--muted-foreground));
+}
+.plate {
+  position: relative;
+  background: var(--surface-plate);
+  border: 1px solid hsl(var(--rule));
+  border-radius: var(--radius);
+}
+
+/* ── Top bar — thin frosted glass ─────────────────────────── */
+.site-topbar {
+  background: var(--glass-fill-thin);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
+}
+
+/* ── Status pill — glass ──────────────────────────────────── */
+.status-pill {
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-pill);
+  background: var(--glass-fill);
+  border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
+}
+
+/* ── Buttons — glass pill; solid CTA → oxide glass; liquid transform ── */
+.btn {
+  --mx: 50%; --my: 50%;
+  position: relative; isolation: isolate; overflow: hidden;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-fill-thick);
+  color: hsl(var(--foreground));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+  transition: transform var(--dur-settle) var(--ease-glass),
+              box-shadow var(--dur) var(--ease-glass),
+              background var(--dur) var(--ease-glass),
+              border-color var(--dur) var(--ease-glass);
+}
+.btn::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  pointer-events: none; opacity: 0;
+  background: radial-gradient(78px 78px at var(--mx) var(--my), var(--glass-edge), transparent 66%);
+  transition: opacity var(--dur) ease;
+}
+.btn:hover::before { opacity: 1; }
+.btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: var(--glass-shadow-lg), inset 0 1px 0 var(--glass-edge);
+}
+.btn:active { transform: translateY(0) scale(0.965); transition-duration: 130ms; }
+
+.btn-solid {
+  background: var(--glass-oxide-fill);
+  border-color: var(--glass-oxide-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-oxide-edge);
+  color: hsl(var(--foreground));
+}
+.btn-solid::before {
+  background: radial-gradient(78px 78px at var(--mx) var(--my), var(--glass-oxide-edge), transparent 66%);
+}
+.btn-solid:hover {
+  background: var(--glass-oxide-fill);
+  border-color: var(--glass-oxide-border);
+  box-shadow: var(--glass-shadow-lg), inset 0 1px 0 var(--glass-oxide-edge);
+}
+.btn-ghost { background: var(--glass-fill); }
+.btn-ghost:hover { background: var(--glass-fill-thick); color: hsl(var(--foreground)); }
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+  .btn:hover, .btn:active { transform: none; }
+}
+
+/* ── Form fields — glass inputs with oxide focus ──────────── */
+.form-input {
+  background: var(--glass-fill);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-glass);
+  padding: 0.85rem 1rem;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
+}
+.form-input:focus {
+  border-color: hsl(var(--primary) / 0.6);
+  box-shadow: inset 0 1px 0 var(--glass-edge), 0 0 0 3px hsl(var(--primary) / 0.12);
+}
+
+/* ── Photo frame — glass edge + soft lift ─────────────────── */
+.photo-frame {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-glass);
+  box-shadow: var(--glass-shadow);
+}
+
+/* ── Focus index — a glass plate (replaces the marquee) ───── */
+.focus-section { padding-block: clamp(2.5rem, 6vh, 4.5rem); }
+.focus-plate {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-glass);
+  padding: 1.6rem 1.9rem;
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+}
+.focus-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 1rem;
+}
+.focus-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 2rem; }
+@media (max-width: 700px) { .focus-grid { grid-template-columns: 1fr; } }
+.focus-item {
+  display: grid; grid-template-columns: 32px 1fr auto; gap: 0.625rem;
+  align-items: baseline; padding: 0.5rem 0;
+  border-top: 1px solid var(--glass-border);
+}
+.focus-w {
+  font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
+  font-style: italic; font-size: 1.35rem; line-height: 1.1;
+  color: hsl(var(--foreground)); letter-spacing: -0.01em;
+  /* slow oxide highlight travels through the index, i → ix, then loops */
+  animation: focus-pulse 7.2s var(--ease-glass) infinite;
+  animation-delay: calc(var(--i, 0) * 0.42s);
+}
+.focus-star {
+  color: hsl(var(--primary)); font-size: 0.75rem;
+  opacity: 0.4;
+  animation: focus-star 7.2s var(--ease-glass) infinite;
+  animation-delay: calc(var(--i, 0) * 0.42s);
+}
+@keyframes focus-pulse {
+  0%, 9%, 100% { color: hsl(var(--foreground)); text-shadow: none; }
+  3% { color: hsl(var(--primary)); text-shadow: 0 0 16px hsl(var(--primary) / 0.45); }
+}
+@keyframes focus-star {
+  0%, 9%, 100% { opacity: 0.4; transform: scale(1); }
+  3% { opacity: 1; transform: scale(1.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-w, .focus-star { animation: none; }
+  .focus-star { opacity: 1; }
+}
+
+/* ── Surface (Paper/Ink) toggle — fixed glass pill ────────── */
+.surf-toggle {
+  position: fixed; right: 18px; bottom: 18px; z-index: 200;
+  display: inline-flex; gap: 2px; padding: 4px;
+  border-radius: var(--radius-pill);
+}
+.surf-toggle button {
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: hsl(var(--muted-foreground)); background: transparent; border: 0;
+  cursor: pointer; padding: 0.45rem 0.8rem; border-radius: var(--radius-pill);
+  transition: color var(--dur) ease, background var(--dur) ease;
+}
+.surf-toggle button[aria-pressed="true"] {
+  color: hsl(var(--foreground));
+  background: var(--glass-fill-thick);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
 }

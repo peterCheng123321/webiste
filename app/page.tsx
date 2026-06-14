@@ -1,10 +1,12 @@
-import type { ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
 import Link from "next/link"
 import { ArrowUpRight, Github, Linkedin, Mail, MapPin, Phone } from "lucide-react"
 import { defaultData, type Skill } from "@/lib/default-data"
 import { SiteHeader } from "@/components/site-header"
 import { RevealOnScroll } from "@/components/reveal-on-scroll"
 import { ContactForm } from "@/components/contact-form"
+import { SurfaceToggle } from "@/components/surface-toggle"
+import { ProjectDiagram } from "@/components/project-diagram"
 
 const formatMonth = (value: string) => {
   if (!value) return ""
@@ -36,6 +38,8 @@ const tickerWords = [
   "Interaction Design",
 ]
 
+const focusRoman = ["i.", "ii.", "iii.", "iv.", "v.", "vi.", "vii.", "viii.", "ix."]
+
 function SectionHead({
   index,
   eyebrow,
@@ -60,9 +64,10 @@ export default function Home() {
   const data = defaultData
 
   return (
-    <main id="top" className="min-h-screen bg-background text-foreground">
+    <main id="top" className="relative z-10 min-h-screen text-foreground">
       <SiteHeader />
       <RevealOnScroll />
+      <SurfaceToggle />
 
       {/* ───────────────────── Hero ───────────────────── */}
       <section className="pt-32 pb-20 md:pt-40 md:pb-28">
@@ -124,15 +129,28 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ───────────────────── Ticker ───────────────────── */}
-      <section className="border-y border-[hsl(var(--rule))] py-6 overflow-hidden">
-        <div className="ticker-track font-serif text-3xl md:text-5xl italic">
-          {[...tickerWords, ...tickerWords].map((word, i) => (
-            <span key={i} className="inline-flex items-center gap-12">
-              {word}
-              <span className="text-[hsl(var(--primary))]">✦</span>
-            </span>
-          ))}
+      {/* ───────────────────── Focus index (glass plate) ───────────────────── */}
+      <section className="focus-section">
+        <div className="editorial-container">
+          <div className="focus-plate reveal">
+            <div className="focus-head">
+              <span className="eyebrow">§ Focus / An index</span>
+              <span className="eyebrow">Nine areas · 2026</span>
+            </div>
+            <div className="focus-grid">
+              {tickerWords.map((word, i) => (
+                <div
+                  key={word}
+                  className="focus-item"
+                  style={{ "--i": i } as CSSProperties}
+                >
+                  <span className="eyebrow">{focusRoman[i]}</span>
+                  <span className="focus-w">{word}</span>
+                  <span className="focus-star">✦</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -289,11 +307,15 @@ export default function Home() {
                 rel="noreferrer"
                 className="project-row group reveal"
               >
-                <span className="font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground pt-2">
+                <span className="project-num font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground pt-2">
                   {String(i + 1).padStart(2, "0")}
                 </span>
 
-                <div className="space-y-2">
+                <div className="project-thumb" aria-hidden="true">
+                  <ProjectDiagram kind={project.diagram} />
+                </div>
+
+                <div className="project-body space-y-2">
                   <h3 className="project-title display-md">
                     {project.title}
                   </h3>
@@ -315,7 +337,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-2 pt-2">
+                <div className="project-right flex flex-col items-end gap-2 pt-2">
                   <span className="font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground">
                     {project.year}
                   </span>

@@ -31,6 +31,7 @@ export interface Project {
   tags: string[]
   repoUrl?: string
   demoUrl?: string
+  diagram?: "scheduler" | "ats" | "imu" | "vr"
 }
 
 export interface Skill {
@@ -190,6 +191,7 @@ export const defaultData: WebsiteData = {
       description:
         "A scheduling tool that reads the university course catalog, validates prerequisites, and generates conflict-free timetables. Written in React + Node, deployed on AWS.",
       tags: ["React", "Node.js", "AWS", "Algorithms"],
+      diagram: "scheduler",
     },
     {
       id: "proj2",
@@ -199,6 +201,7 @@ export const defaultData: WebsiteData = {
       description:
         "Full-stack tracker with Gmail API ingestion and AI-powered triage. Won 2nd place at Syracuse Tech Challenge 2024 for an AI mental-health screening component built on top.",
       tags: ["React", "Node.js", "PostgreSQL", "Gmail API"],
+      diagram: "ats",
     },
     {
       id: "proj3",
@@ -208,6 +211,7 @@ export const defaultData: WebsiteData = {
       description:
         "Android app collecting IMU and audio streams on a schedule, with on-device buffering and secure upload. Used as the data-collection layer for the Salekin Lab depression-detection research.",
       tags: ["Android", "Kotlin", "Java", "Signal Processing"],
+      diagram: "imu",
     },
     {
       id: "proj4",
@@ -217,6 +221,7 @@ export const defaultData: WebsiteData = {
       description:
         "A VR onboarding experience that walks students through library stacks and digital resources. Built in Unity with custom gesture recognition and interactive scene scripting.",
       tags: ["Unity", "C#", "VR"],
+      diagram: "vr",
     },
   ],
   skills: [
