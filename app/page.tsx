@@ -9,6 +9,11 @@ export default function Home() {
 
   return (
     <main className="home">
+      <div className="home-plate">
+        <span className="home-plate-name">{personalInfo.name}</span>
+        <span className="home-plate-place">Based in {personalInfo.location}</span>
+      </div>
+
       <header className="home-hero">
         <p className="home-big">
           Zhongquan is joining
@@ -20,7 +25,8 @@ export default function Home() {
             rel="noreferrer"
           >
             Deloitte
-          </a>
+          </a>{" "}
+          in <span className="home-place-em">Shanghai</span>
           <br />
           for{" "}
           <span className="home-underline">Technology Transformation</span>.
@@ -50,12 +56,12 @@ export default function Home() {
         </p>
 
         <div className="home-cols">
-          <div>
+          <div className="home-col-primary">
             <p className="home-label">Explore</p>
             <ul className="home-vlist">
               <li>
                 <button type="button" className="home-text-btn" data-open-peteros>
-                  PeterOS
+                  Open PeterOS
                 </button>
               </li>
               <li>
@@ -109,6 +115,7 @@ export default function Home() {
 
       <footer className="home-footer">
         <div className="home-footer-col">
+          <p className="home-footer-whisper">Zhongquan · Peter</p>
           <ul className="home-hlist">
             <li>
               <a href={`mailto:${personalInfo.email}`}>Email</a>

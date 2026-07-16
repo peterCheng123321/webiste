@@ -25,7 +25,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata = {
   title: "Zhongquan Cheng — Analyst · Technology Transformation",
   description:
-    "Zhongquan Cheng — Incoming Analyst 1 at Deloitte (Technology Transformation). M.S. Computer Science at WashU. Backend engineering, applied ML, and PeterOS.",
+    "Zhongquan Cheng — Incoming Analyst 1 at Deloitte Technology Transformation in Shanghai. M.S. Computer Science at WashU. Backend engineering, applied ML, and PeterOS.",
 }
 
 export default function RootLayout({

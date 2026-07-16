@@ -80,7 +80,7 @@ export function SiteHeader() {
 
         <div className="status-pill hidden lg:flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
           <span className="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse" />
-          <span>Available · St. Louis</span>
+          <span>Available · Shanghai</span>
           {currentTime && <span className="opacity-70">· {currentTime}</span>}
         </div>
       </div>

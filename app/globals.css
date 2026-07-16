@@ -52,19 +52,10 @@
     font-weight: 400;
     line-height: 1.35;
     -webkit-font-smoothing: antialiased;
-    /* subtle column grid like ryo.lu */
-    background-image: repeating-linear-gradient(
-      to right,
-      var(--grid-line),
-      var(--grid-line) var(--line-thickness),
-      transparent var(--line-thickness),
-      transparent calc(100% / var(--columns))
-    );
-    background-size: 100% 100%;
   }
 
   ::selection {
-    background: #ffc800;
+    background: #b8d4f0;
     color: #111;
   }
 
@@ -76,7 +67,7 @@
 
   a:hover {
     opacity: 0.5;
-    cursor: ne-resize;
+    cursor: pointer;
   }
 
   button {
@@ -95,7 +86,7 @@
 }
 
 /* ═══════════════════════════════════════════
-   Homepage — ryo.lu structure
+   Homepage — editorial identity
    ═══════════════════════════════════════════ */
 
 .home {
@@ -105,29 +96,68 @@
   margin: 0 auto;
 }
 
+/* Name + place plate */
+.home-plate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  max-width: var(--max-width);
+  margin: 0 10vw;
+  padding: 2.5vw 0 0.85em;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.12);
+  font-size: clamp(10px, 0.95vw, 13px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  animation: pageFadeIn 0.9s ease both;
+}
+
+@media (max-width: 760px) {
+  .home-plate {
+    margin: 0 5vw;
+    padding-top: 5vw;
+  }
+}
+
+.home-plate-name {
+  opacity: 0.55;
+}
+
+.home-plate-place {
+  opacity: 0.75;
+  letter-spacing: 0.1em;
+}
+
 .home-hero {
   display: flex;
   align-items: center;
-  min-height: 50vh;
+  min-height: 46vh;
   max-width: var(--max-width);
-  padding: 10vw 10vw 2.5vw;
+  padding: 6vw 10vw 2.5vw;
 }
 
 @media (max-width: 760px) {
   .home-hero {
-    padding: 5vw;
-    min-height: 42vh;
+    padding: 8vw 5vw 4vw;
+    min-height: 36vh;
   }
 }
 
 .home-big {
   margin: 0;
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-serif), "Instrument Serif", Georgia, serif;
   font-size: var(--large-font-size);
-  font-weight: 500;
-  letter-spacing: -0.015em;
-  line-height: 1.22;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.18;
   animation: pageFadeIn 1.6s ease both;
+}
+
+.home-place-em {
+  position: relative;
+  white-space: nowrap;
+  font-style: italic;
 }
 
 .home-underline {
@@ -198,7 +228,7 @@
 
 .home-cols {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1.15fr 1fr 1fr;
   gap: 2.5vw 3vw;
   font-size: var(--small-font-size);
   letter-spacing: 0.04em;
@@ -218,6 +248,10 @@
     gap: 1.75rem;
     font-size: 12px;
   }
+}
+
+.home-col-primary .home-text-btn {
+  font-weight: 500;
 }
 
 .home-label {
@@ -259,7 +293,7 @@
 
 .home-text-btn:hover {
   opacity: 0.5;
-  cursor: ne-resize;
+  cursor: pointer;
 }
 
 /* text links underline (small section) */
@@ -299,6 +333,14 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   line-height: 1.5;
+}
+
+.home-footer-whisper {
+  margin: 0 0 0.55em;
+  font-size: 0.85em;
+  letter-spacing: 0.12em;
+  opacity: 0.4;
+  text-transform: none;
 }
 
 @media (min-width: 1440px) {
@@ -348,7 +390,7 @@
   pointer-events: auto;
 }
 
-/* Full-bleed OS under the peeling homepage */
+/* PeterOS, full-bleed beneath the peeling page */
 .pos-peel-os {
   position: absolute;
   inset: 0;
@@ -358,7 +400,7 @@
   transform: translateZ(0);
 }
 
-/* Frozen snapshot of the real site — hole grows from top-right */
+/* Frozen snapshot of the homepage — the still-flat half */
 .pos-peel-page {
   position: absolute;
   inset: 0;
@@ -367,7 +409,7 @@
   background-size: cover;
   background-position: top left;
   background-repeat: no-repeat;
-  will-change: clip-path, opacity;
+  will-change: clip-path;
   transform: translateZ(0);
   pointer-events: none;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03);
@@ -376,150 +418,132 @@
 .pos-peel-page-fallback {
   position: absolute;
   inset: 0;
-  background:
-    #fff
-    repeating-linear-gradient(
-      to right,
-      transparent,
-      transparent calc(12.5% - 1px),
-      rgba(0, 0, 0, 0.04) calc(12.5% - 1px),
-      rgba(0, 0, 0, 0.04) 12.5%
-    );
+  background: #fff;
 }
 
-/* Soft depth along the peel frontier */
-.pos-peel-page-edge {
+/* Cast-shadow carrier — unclipped so the shadow isn't clipped with the flap */
+.pos-peel-flap-shadow {
+  position: absolute;
+  inset: 0;
+  z-index: 930;
+  pointer-events: none;
+  filter:
+    drop-shadow(-7px 9px 11px rgba(0, 0, 0, 0.26))
+    drop-shadow(-1px 2px 3px rgba(0, 0, 0, 0.16));
+}
+
+/* The lifted corner: paper backside, clipped to the wedge and reflected
+   across the crease by an inline matrix() so it pins to the cursor */
+.pos-peel-flap {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(
-    225deg,
-    transparent 40%,
-    rgba(0, 0, 0, 0.08) 52%,
-    transparent 64%
+  will-change: transform, clip-path;
+  /* corner-anchored so tone varies across the small visible wedge */
+  background: radial-gradient(
+    150% 150% at 100% 0%,
+    #f8f3e9 0%,
+    #efe7d7 44%,
+    #e4dac6 76%,
+    #d8ccb5 100%
   );
-  transition: opacity 0.25s ease;
 }
 
-/* Dog-ear — grab & peel */
-.pos-peel-curl {
+/* faint mirrored bleed-through of the page print — the paper's backside */
+.pos-peel-flap-print {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: top left;
+  background-repeat: no-repeat;
+  opacity: 0.13;
+  mix-blend-mode: multiply;
+  filter: blur(0.3px);
+}
+
+/* paper grain */
+.pos-peel-flap-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.09;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 170px 170px;
+}
+
+/* the paper curves down into the fold — light at the free tip, shaded in the
+   valley toward the crease (corner-anchored, px stops so it tracks the wedge) */
+.pos-peel-flap-shade {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 100% 0%,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(35, 24, 12, 0.05) 110px,
+    rgba(35, 24, 12, 0.2) 300px,
+    rgba(35, 24, 12, 0.3) 480px,
+    rgba(0, 0, 0, 0) 820px
+  );
+}
+
+/* the lifted free edge catches a little light */
+.pos-peel-flap-sheen {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 100% 0%,
+    rgba(255, 255, 255, 0.38) 0px,
+    rgba(255, 255, 255, 0.08) 70px,
+    rgba(255, 255, 255, 0) 150px
+  );
+  mix-blend-mode: soft-light;
+}
+
+/* Grab target at the corner */
+.pos-peel-hit {
   pointer-events: auto;
   position: absolute;
-  top: -14px;
+  top: 0;
   right: 0;
-  width: 100px;
-  height: 100px;
+  width: 132px;
+  height: 132px;
   border: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
   background: transparent;
   cursor: grab;
-  z-index: 930;
-  transform-origin: top right;
+  z-index: 940;
   -webkit-tap-highlight-color: transparent;
   touch-action: none; /* critical for drag on touch */
   user-select: none;
 }
 
-.pos-peel.is-dragging .pos-peel-curl {
+.pos-peel.is-dragging .pos-peel-hit {
   cursor: grabbing;
 }
 
-.pos-peel-curl:focus-visible {
+.pos-peel-hit:focus-visible {
   outline: 2px solid rgba(10, 132, 255, 0.7);
   outline-offset: 3px;
+  border-radius: 2px;
 }
 
-/* Paper triangle — translucent so the page underneath shows through */
-.pos-peel-curl-sheet {
+.pos-peel-label {
   position: absolute;
-  inset: 0;
-  overflow: hidden;
-  clip-path: polygon(100% 0, 0 0, 100% 100%);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 252, 248, 0.72) 0%,
-    rgba(245, 241, 232, 0.58) 48%,
-    rgba(235, 228, 214, 0.5) 100%
-  );
-  backdrop-filter: blur(10px) saturate(1.1);
-  -webkit-backdrop-filter: blur(10px) saturate(1.1);
-  box-shadow:
-    -3px 4px 2px rgba(0, 0, 0, 0.04),
-    -10px 12px 24px rgba(0, 0, 0, 0.12);
-  border-left: 0.5px solid rgba(255, 255, 255, 0.55);
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
-}
-
-.pos-peel.is-hover:not(.is-dragging) .pos-peel-curl-sheet {
-  box-shadow:
-    -4px 6px 4px rgba(0, 0, 0, 0.05),
-    -14px 16px 28px rgba(0, 0, 0, 0.2);
-}
-
-.pos-peel-curl-grain {
-  position: absolute;
-  inset: 0;
-  opacity: 0.06;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  pointer-events: none;
-}
-
-.pos-peel-curl-fold {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    225deg,
-    transparent 40%,
-    rgba(0, 0, 0, 0.05) 48%,
-    rgba(0, 0, 0, 0.16) 58%,
-    rgba(0, 0, 0, 0.06) 70%,
-    transparent 80%
-  );
-  pointer-events: none;
-}
-
-.pos-peel-curl-shine {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    225deg,
-    transparent 48%,
-    rgba(255, 255, 255, 0.7) 54%,
-    transparent 60%
-  );
-  pointer-events: none;
-  mix-blend-mode: soft-light;
-}
-
-.pos-peel-curl-underside {
-  position: absolute;
-  inset: 0;
-  clip-path: polygon(100% 0, 100% 100%, 0 100%);
-  background: linear-gradient(
-    45deg,
-    rgba(35, 30, 24, 0.45) 0%,
-    rgba(20, 16, 12, 0.25) 50%,
-    transparent 72%
-  );
-  pointer-events: none;
-  opacity: 0.5;
-}
-
-.pos-peel-curl-label {
-  position: absolute;
-  left: 16%;
-  bottom: 20%;
+  top: 15px;
+  right: 13px;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 2px;
-  transform: rotate(-42deg);
-  transform-origin: left bottom;
+  transform: rotate(-45deg);
+  transform-origin: top right;
   pointer-events: none;
   color: #3a342c;
+  transition: opacity 0.25s ease;
 }
 
-.pos-peel-curl-label em {
+.pos-peel-label em {
   font-style: normal;
   font-family: var(--font-serif), Georgia, serif;
   font-size: 12px;
@@ -527,12 +551,12 @@
   line-height: 1;
 }
 
-.pos-peel-curl-label small {
+.pos-peel-label small {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 7.5px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
 /* Hide abandoned experiments */
@@ -546,21 +570,19 @@
 }
 
 @media (max-width: 640px) {
-  .pos-peel-curl {
-    width: 84px;
-    height: 84px;
-    top: -10px;
+  .pos-peel-hit {
+    width: 108px;
+    height: 108px;
   }
 
-  .pos-peel-curl-label em {
+  .pos-peel-label em {
     font-size: 11px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pos-peel-stage,
-  .pos-peel-curl {
-    transition: none !important;
+  .pos-peel-label {
+    transition: none;
   }
 }
 
