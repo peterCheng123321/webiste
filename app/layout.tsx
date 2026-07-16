@@ -23,9 +23,9 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata = {
-  title: "Zhongquan Cheng — Software Engineer & Researcher",
+  title: "Zhongquan Cheng — Analyst · Technology Transformation",
   description:
-    "Portfolio of Zhongquan Cheng — M.S. Computer Science at Washington University in St. Louis. Backend engineering, applied ML, and computer-vision research.",
+    "Zhongquan Cheng — Incoming Analyst 1 at Deloitte (Technology Transformation). M.S. Computer Science at WashU. Backend engineering, applied ML, and PeterOS.",
 }
 
 export default function RootLayout({
@@ -34,16 +34,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" data-surface="paper">
-      <head>
-        {/* Apply the saved Paper/Ink surface before paint to avoid a flash. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "try{var s=localStorage.getItem('zc-surface');if(s==='ink'||s==='paper')document.documentElement.setAttribute('data-surface',s)}catch(e){}",
-          }}
-        />
-      </head>
+    <html lang="en">
       <body
         className={`${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans`}
       >

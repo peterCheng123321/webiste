@@ -76,8 +76,8 @@ export interface WebsiteData {
 export const defaultData: WebsiteData = {
   personalInfo: {
     name: "Zhongquan Cheng",
-    title: "Software Engineer · Researcher",
-    bio: "I build backend systems and ML pipelines — currently at WashU focusing on computer vision for healthcare. My work sits at the intersection of reliable engineering and applied research: server optimization at Undergraduation.com, sensor-based emotion detection at Syracuse, and segmentation pipelines at the AI for Health Institute.",
+    title: "Analyst · Technology Transformation",
+    bio: "Incoming Analyst 1 at Deloitte (Technology Transformation), full-time — previously building backends and applied ML at WashU and Undergraduation.com. My work sits between reliable engineering and research: server optimization, sensor pipelines, and computer-vision segmentation for health.",
     location: "St. Louis, Missouri",
     email: "chengzhongquan0630@gmail.com",
     phone: "+1 (315) 317-5618",
@@ -105,6 +105,21 @@ export const defaultData: WebsiteData = {
     },
   ],
   experiences: [
+    {
+      id: "exp0",
+      title: "Analyst 1 · Technology Transformation",
+      company: "Deloitte",
+      location: "United States",
+      startDate: "2026-08",
+      endDate: "",
+      current: true,
+      description: [
+        "Incoming full-time Analyst 1 on the Technology Transformation practice.",
+        "Focus: helping clients modernize systems, deliver technology-enabled change, and ship reliable digital outcomes.",
+        "Bringing backend engineering, applied ML, and research experience into consulting delivery.",
+      ],
+      type: "professional",
+    },
     {
       id: "exp1",
       title: "Backend Engineering Intern",
