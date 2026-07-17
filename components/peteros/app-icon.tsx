@@ -1,16 +1,8 @@
 "use client"
 
 /**
- * Classic Mac OS 9 icons with real open / closed bitmaps.
- *
- * Thinking (not a green pip):
- * - Folder closed vs folder open (lid up, contents visible)
- * - Trash empty vs trash full (paper sticking out)
- * - Mail closed vs mail open (envelope with letter)
- * - Document closed vs document open (page with text)
- * - Terminal idle CRT vs keyboard-active session
- * - Calendar closed vs clipboard/open day sheet
- * - etc. — each pair is a different picture from the pack
+ * Classic Mac OS 9 artwork. Application icons stay visually stable; only
+ * semantic objects such as folders and Trash switch between closed/open art.
  *
  * Pack: bearz314/MacOS9-icons (MIT) → /public/icons/macos9/
  */
@@ -25,7 +17,7 @@ type Props = {
   size?: number
   className?: string
   appearance?: IconAppearance
-  /** true = use the “open” bitmap for this icon */
+  /** Semantic object state. Only folder and Trash use alternate artwork. */
   open?: boolean
 }
 
@@ -100,42 +92,33 @@ export function AppIcon({
   id,
   size = 56,
   className,
-  appearance = "light",
   open = false,
 }: Props) {
   const pair = PAIR[id]
-  const src = open ? pair.open : pair.closed
-
-  const filters: string[] = []
-  if (appearance === "dark") filters.push("brightness(0.82) contrast(1.05) saturate(0.95)")
-  if (appearance === "clear") filters.push("brightness(1.06) contrast(0.95) saturate(0.92)")
+  const isStatefulObject = id === "folder" || id === "trash"
+  const shownOpen = isStatefulObject && open
+  const src = shownOpen ? pair.open : pair.closed
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      key={`${id}-${open ? "open" : "closed"}`}
       src={src}
       alt=""
-      title={open ? pair.openMeans : undefined}
       width={size}
       height={size}
-      className={["pos-app-icon", open ? "is-open" : "is-closed", className]
+      className={["pos-app-icon", shownOpen ? "is-open" : "is-closed", className]
         .filter(Boolean)
         .join(" ")}
       data-icon={id}
-      data-open={open ? "true" : "false"}
+      data-open={shownOpen ? "true" : "false"}
       draggable={false}
       style={{
         width: size,
         height: size,
         display: "block",
         objectFit: "contain",
-        filter: filters.length ? filters.join(" ") : undefined,
-        opacity: appearance === "clear" ? 0.93 : 1,
         userSelect: "none",
         pointerEvents: "none",
-        // crossfade feel when swapping open/closed bitmaps
-        transition: "filter 160ms ease, opacity 160ms ease",
       }}
     />
   )

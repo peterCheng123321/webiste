@@ -33,7 +33,7 @@ export type AppMeta = {
 }
 
 export const APPS: AppMeta[] = [
-  { id: "about", title: "About", icon: "👤", defaultWidth: 480, defaultHeight: 460, kind: "system" },
+  { id: "about", title: "About", icon: "👤", defaultWidth: 560, defaultHeight: 520, kind: "system" },
   { id: "projects", title: "Projects", icon: "🛠", defaultWidth: 620, defaultHeight: 440, kind: "system" },
   { id: "resume", title: "Resume", icon: "📄", defaultWidth: 680, defaultHeight: 500, kind: "system" },
   { id: "finder", title: "Finder", icon: "📁", defaultWidth: 640, defaultHeight: 420, kind: "system" },

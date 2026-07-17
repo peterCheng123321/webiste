@@ -98,7 +98,7 @@ function buildTree(): Item {
 type Props = { onOpenApp?: (app: string) => void }
 
 export function FinderApp({ onOpenApp }: Props) {
-  const { appearance, isAppOpen } = usePeterOS()
+  const { appearance } = usePeterOS()
   const root = useMemo(() => buildTree(), [])
   const [path, setPath] = useState<Item[]>([root])
   const [selected, setSelected] = useState<Item | null>(null)
@@ -222,7 +222,6 @@ export function FinderApp({ onOpenApp }: Props) {
                         id={item.appId}
                         size={44}
                         appearance={appearance}
-                        open={isAppOpen(item.appId)}
                       />
                     ) : item.kind === "folder" ? (
                       <AppIcon

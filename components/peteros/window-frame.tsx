@@ -7,7 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react"
-import { motion, AnimatePresence } from "motion/react"
+import { motion, AnimatePresence, useReducedMotion } from "motion/react"
 import type { WindowState } from "./types"
 
 type Props = {
@@ -40,6 +40,7 @@ export function WindowFrame({
     sy: number
   } | null>(null)
   const [dragging, setDragging] = useState(false)
+  const reduceMotion = useReducedMotion() === true
 
   const onPointerDownTitle = useCallback(
     (e: ReactPointerEvent) => {
@@ -117,7 +118,7 @@ export function WindowFrame({
           zIndex: win.z,
           position: "absolute",
         }}
-        initial={{ opacity: 0, scale: 0.9, y: 16 }}
+        initial={reduceMotion ? false : { opacity: 0, scale: 0.9, y: 16 }}
         animate={{
           opacity: 1,
           scale: 1,
@@ -127,9 +128,9 @@ export function WindowFrame({
           width: layout.width,
           height: layout.height,
         }}
-        exit={{ opacity: 0, scale: 0.92, y: 12 }}
+        exit={reduceMotion ? undefined : { opacity: 0, scale: 0.92, y: 12 }}
         transition={
-          dragging
+          dragging || reduceMotion
             ? { duration: 0 }
             : {
                 type: "spring",
@@ -139,6 +140,9 @@ export function WindowFrame({
               }
         }
         onPointerDown={() => onFocus(win.id)}
+        onFocusCapture={() => {
+          if (!focused) onFocus(win.id)
+        }}
         role="dialog"
         aria-label={win.title}
         data-focused={focused ? "true" : "false"}
@@ -150,7 +154,10 @@ export function WindowFrame({
           onPointerUp={onPointerUp}
           onDoubleClick={() => onMaximize(win.id)}
         >
-          <div className="pos-traffic">
+          <div
+            className="pos-traffic"
+            onDoubleClick={(event) => event.stopPropagation()}
+          >
             <button
               type="button"
               className="pos-dot pos-dot-close"

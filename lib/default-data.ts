@@ -126,8 +126,8 @@ export const defaultData: WebsiteData = {
       company: "Undergraduation.com",
       location: "Remote",
       startDate: "2025-09",
-      endDate: "",
-      current: true,
+      endDate: "2026",
+      current: false,
       description: [
         "Cut average API response time from 2.3s to 1.2s (45%) by refactoring queries and adding composite indexes on hot paths.",
         "Built RESTful endpoints in Node.js / Express for the student-profile and application-tracking flows.",

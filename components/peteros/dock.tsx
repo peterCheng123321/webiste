@@ -1,12 +1,20 @@
 "use client"
 
-import { useCallback, useEffect, useRef, type PointerEvent as RE } from "react"
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as RE,
+} from "react"
 import { SYSTEM_APPS, TOY_APPS, type AppId } from "./types"
 import { AppIcon } from "./app-icon"
 import type { IconAppearance } from "./context"
 
 type Props = {
   appearance: IconAppearance
+  activeApp: AppId | null
   running: Set<AppId>
   trashFull: boolean
   onOpen: (id: AppId | "trash") => void
@@ -31,14 +39,26 @@ const MAX_SCALE = 1.55
 const SPREAD = 110
 /** Lerp factor per frame (~60fps) — higher = snappier, lower = silkier */
 const LERP = 0.22
+const MAGNIFY_QUERY =
+  "(min-width: 641px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)"
 
-export function Dock({ appearance, running, trashFull, onOpen, onEmptyTrash }: Props) {
+export function Dock({
+  appearance,
+  activeApp,
+  running,
+  trashFull,
+  onOpen,
+  onEmptyTrash,
+}: Props) {
   const ref = useRef<HTMLElement>(null)
   const scalesRef = useRef<number[]>(ITEMS.map(() => 1))
   const targetRef = useRef<number[]>(ITEMS.map(() => 1))
   const mouseX = useRef<number | null>(null)
   const rafRef = useRef(0)
+  const startAnimationRef = useRef<() => void>(() => {})
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const previousRunningRef = useRef(new Set(running))
+  const [focusIndex, setFocusIndex] = useState(0)
 
   const computeTargets = useCallback((clientX: number | null) => {
     if (clientX == null) {
@@ -61,11 +81,29 @@ export function Dock({ appearance, running, trashFull, onOpen, onEmptyTrash }: P
     })
   }, [])
 
-  // rAF loop — continuous lerp like ryOS / game-style UI
+  const resetMagnification = useCallback(() => {
+    mouseX.current = null
+    scalesRef.current = ITEMS.map(() => 1)
+    targetRef.current = ITEMS.map(() => 1)
+
+    itemRefs.current.forEach((button) => {
+      if (!button) return
+      button.style.removeProperty("width")
+      button.style.removeProperty("transform")
+      button
+        .querySelector<HTMLElement>(".pos-dock-icon")
+        ?.style.removeProperty("transform")
+    })
+  }, [])
+
+  // Run the magnification loop only while values are moving. Pointer movement
+  // restarts it, so the dock does no layout work while it is idle.
   useEffect(() => {
     let alive = true
+    const magnify = window.matchMedia(MAGNIFY_QUERY)
+
     const tick = () => {
-      if (!alive) return
+      if (!alive || !magnify.matches) return
       computeTargets(mouseX.current)
       let dirty = false
       const next = scalesRef.current.map((cur, i) => {
@@ -94,22 +132,83 @@ export function Dock({ appearance, running, trashFull, onOpen, onEmptyTrash }: P
         }
       })
 
+      if (dirty) rafRef.current = requestAnimationFrame(tick)
+      else rafRef.current = 0
+    }
+
+    const startAnimation = () => {
+      if (!magnify.matches || rafRef.current) return
       rafRef.current = requestAnimationFrame(tick)
     }
-    rafRef.current = requestAnimationFrame(tick)
+
+    startAnimationRef.current = startAnimation
+
+    const syncMagnification = () => {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = 0
+      resetMagnification()
+      if (magnify.matches && mouseX.current != null) startAnimation()
+    }
+
+    magnify.addEventListener("change", syncMagnification)
+    syncMagnification()
+
     return () => {
       alive = false
+      magnify.removeEventListener("change", syncMagnification)
       cancelAnimationFrame(rafRef.current)
+      startAnimationRef.current = () => {}
+      resetMagnification()
     }
-  }, [computeTargets])
+  }, [computeTargets, resetMagnification])
 
   const onMove = useCallback((e: RE) => {
     mouseX.current = e.clientX
+    startAnimationRef.current()
   }, [])
 
   const onLeave = useCallback(() => {
     mouseX.current = null
+    startAnimationRef.current()
   }, [])
+
+  useEffect(() => {
+    const previous = previousRunningRef.current
+    const launched = [...running].filter((id) => !previous.has(id))
+    previousRunningRef.current = new Set(running)
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+
+    launched.forEach((id) => {
+      const button = itemRefs.current.find(
+        (item) => item?.dataset.dockId === id,
+      )
+      button?.classList.add("launching")
+    })
+  }, [running])
+
+  const onDockKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+      const buttons = itemRefs.current.filter(
+        (button): button is HTMLButtonElement => Boolean(button),
+      )
+      const current = buttons.indexOf(event.currentTarget)
+      if (current < 0) return
+
+      let next = current
+      if (event.key === "ArrowLeft") next = Math.max(0, current - 1)
+      else if (event.key === "ArrowRight") {
+        next = Math.min(buttons.length - 1, current + 1)
+      } else if (event.key === "Home") next = 0
+      else if (event.key === "End") next = buttons.length - 1
+      else return
+
+      event.preventDefault()
+      setFocusIndex(next)
+      buttons[next]?.focus()
+    },
+    [],
+  )
 
   let bi = 0
 
@@ -128,28 +227,49 @@ export function Dock({ appearance, running, trashFull, onOpen, onEmptyTrash }: P
           }
           const idx = bi++
           const isRunning = item.kind === "app" ? running.has(item.id) : false
-          const isOpen =
-            item.kind === "trash" ? trashFull : isRunning
+          const isActive = item.kind === "app" && activeApp === item.id
+          const isOpen = item.kind === "trash" && trashFull
           const tip =
             item.kind === "trash"
               ? trashFull
                 ? "Trash (full) — double-click to empty"
                 : "Trash (empty)"
               : item.title
+          const accessibleLabel =
+            item.kind === "trash"
+              ? tip
+              : `${item.title}${isActive ? ", active" : isRunning ? ", running" : ""}`
           return (
             <button
               key={item.id}
               type="button"
               data-dock-item
+              data-dock-id={item.id}
               ref={(el) => {
                 itemRefs.current[idx] = el
               }}
-              className={isRunning || (item.kind === "trash" && trashFull) ? "pos-dock-item running" : "pos-dock-item"}
+              className={[
+                "pos-dock-item",
+                isRunning ? "running" : "",
+                isActive ? "active" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              data-active={isActive || undefined}
+              data-running={isRunning || undefined}
+              aria-label={accessibleLabel}
+              tabIndex={idx === focusIndex ? 0 : -1}
+              onFocus={() => setFocusIndex(idx)}
               onClick={() => onOpen(item.id)}
+              onKeyDown={onDockKeyDown}
+              onAnimationEnd={(event) => {
+                if (event.animationName === "posDockLaunch") {
+                  event.currentTarget.classList.remove("launching")
+                }
+              }}
               onDoubleClick={() => {
                 if (item.kind === "trash" && trashFull) onEmptyTrash?.()
               }}
-              title={tip}
             >
               <span className="pos-dock-icon" aria-hidden>
                 <AppIcon
@@ -159,7 +279,9 @@ export function Dock({ appearance, running, trashFull, onOpen, onEmptyTrash }: P
                   open={isOpen}
                 />
               </span>
-              <span className="pos-dock-tip">{tip}</span>
+              <span className="pos-dock-tip" role="tooltip" aria-hidden="true">
+                {tip}
+              </span>
             </button>
           )
         })}
