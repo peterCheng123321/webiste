@@ -28,16 +28,15 @@ export function ShanghaiDayProgress() {
   const [reading, setReading] = useState<DayReading | null>(null)
 
   useEffect(() => {
-    const update = () => setReading(getDayReading())
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches
+    let timeout = 0
+
+    const update = () => {
+      setReading(getDayReading())
+      timeout = window.setTimeout(update, 1_000 - (Date.now() % 1_000))
+    }
 
     update()
-    if (reducedMotion) return
-
-    const interval = window.setInterval(update, 80)
-    return () => window.clearInterval(interval)
+    return () => window.clearTimeout(timeout)
   }, [])
 
   const progress = reading?.percent ?? 0
