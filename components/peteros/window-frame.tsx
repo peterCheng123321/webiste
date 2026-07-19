@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -11,6 +12,7 @@ import { motion, useReducedMotion } from "motion/react"
 import {
   MIN_WINDOW_HEIGHT,
   MIN_WINDOW_WIDTH,
+  appMeta,
   type WindowGeometry,
   type WindowResizeDirection,
   type WindowState,
@@ -42,6 +44,7 @@ type Props = {
   onMove: (id: string, x: number, y: number) => void
   onResize: (id: string, geometry: WindowGeometry) => void
   bounds?: { width: number; height: number }
+  hidden?: boolean
 }
 
 export function WindowFrame({
@@ -55,7 +58,10 @@ export function WindowFrame({
   onMove,
   onResize,
   bounds,
+  hidden = false,
 }: Props) {
+  const frameRef = useRef<HTMLDivElement>(null)
+  const wasHiddenRef = useRef(true)
   const dragRef = useRef<{
     ox: number
     oy: number
@@ -71,6 +77,21 @@ export function WindowFrame({
   const [dragging, setDragging] = useState(false)
   const [resizing, setResizing] = useState<WindowResizeDirection | null>(null)
   const reduceMotion = useReducedMotion() === true
+
+  useEffect(() => {
+    const becameVisible = wasHiddenRef.current && !hidden
+    wasHiddenRef.current = hidden
+    if (!becameVisible || !focused) return
+
+    const frame = frameRef.current
+    if (!frame) return
+    const raf = requestAnimationFrame(() => {
+      if (frame.contains(document.activeElement)) return
+      const preferred = frame.querySelector<HTMLElement>("[data-window-focus]")
+      ;(preferred ?? frame).focus({ preventScroll: true })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [focused, hidden])
 
   const onPointerDownTitle = useCallback(
     (e: ReactPointerEvent) => {
@@ -156,8 +177,15 @@ export function WindowFrame({
 
       const boundWidth = bounds?.width ?? Number.POSITIVE_INFINITY
       const boundHeight = bounds?.height ?? Number.POSITIVE_INFINITY
-      const minWidth = Math.min(MIN_WINDOW_WIDTH, boundWidth)
-      const minHeight = Math.min(MIN_WINDOW_HEIGHT, boundHeight)
+      const meta = appMeta(win.appId)
+      const minWidth = Math.min(
+        Math.max(MIN_WINDOW_WIDTH, meta.minWidth),
+        boundWidth,
+      )
+      const minHeight = Math.min(
+        Math.max(MIN_WINDOW_HEIGHT, meta.minHeight),
+        boundHeight,
+      )
 
       let x = start.x
       let y = start.y
@@ -232,6 +260,7 @@ export function WindowFrame({
 
   return (
     <motion.div
+      ref={frameRef}
       key={win.id}
       className={[
         "pos-window",
@@ -246,6 +275,9 @@ export function WindowFrame({
         zIndex: win.z,
         position: "absolute",
       }}
+      hidden={hidden}
+      aria-hidden={hidden || undefined}
+      tabIndex={-1}
       initial={reduceMotion ? false : { opacity: 0, scale: 0.9, y: 16 }}
       animate={{
         opacity: 1,
@@ -267,13 +299,27 @@ export function WindowFrame({
               mass: 0.85,
             }
       }
-      onPointerDown={() => onFocus(win.id)}
+      onPointerDown={(event) => {
+        onFocus(win.id)
+        const target = event.target
+        if (!(target instanceof Element)) return
+        if (
+          target.closest(
+            "button, a, input, textarea, select, [contenteditable='true'], [tabindex]:not([tabindex='-1'])",
+          )
+        ) {
+          return
+        }
+        frameRef.current?.focus({ preventScroll: true })
+      }}
       onFocusCapture={() => {
         if (!focused) onFocus(win.id)
       }}
       role="dialog"
       aria-label={win.title}
       data-focused={focused ? "true" : "false"}
+      data-minimized={win.minimized ? "true" : "false"}
+      data-closed={win.closed ? "true" : "false"}
       data-app-id={win.appId}
       data-resize-direction={resizing ?? undefined}
     >

@@ -3,12 +3,13 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as RE,
 } from "react"
-import { SYSTEM_APPS, type AppId } from "./types"
+import { SYSTEM_APPS, TOY_APPS, type AppId } from "./types"
 import { AppIcon } from "./app-icon"
 import type { IconAppearance } from "./context"
 
@@ -16,9 +17,9 @@ type Props = {
   appearance: IconAppearance
   activeApp: AppId | null
   running: Set<AppId>
+  openApps: Set<AppId>
   trashFull: boolean
   onOpen: (id: AppId | "trash") => void
-  onEmptyTrash?: () => void
 }
 
 type DockItem =
@@ -26,10 +27,8 @@ type DockItem =
   | { kind: "sep"; id: string }
   | { kind: "trash"; id: "trash"; title: string }
 
-const ITEMS: DockItem[] = [
+const PINNED_ITEMS: DockItem[] = [
   ...SYSTEM_APPS.map((a) => ({ kind: "app" as const, id: a.id, title: a.title })),
-  { kind: "sep", id: "sep-1" },
-  { kind: "trash", id: "trash", title: "Trash" },
 ]
 
 const BASE = 52
@@ -44,13 +43,26 @@ export function Dock({
   appearance,
   activeApp,
   running,
+  openApps,
   trashFull,
   onOpen,
-  onEmptyTrash,
 }: Props) {
+  const items = useMemo<DockItem[]>(
+    () => [
+      ...PINNED_ITEMS,
+      ...TOY_APPS.filter((app) => running.has(app.id)).map((app) => ({
+        kind: "app" as const,
+        id: app.id,
+        title: app.title,
+      })),
+      { kind: "sep", id: "sep-1" },
+      { kind: "trash", id: "trash", title: "Trash" },
+    ],
+    [running],
+  )
   const ref = useRef<HTMLElement>(null)
-  const scalesRef = useRef<number[]>(ITEMS.map(() => 1))
-  const targetRef = useRef<number[]>(ITEMS.map(() => 1))
+  const scalesRef = useRef<number[]>(items.map(() => 1))
+  const targetRef = useRef<number[]>(items.map(() => 1))
   const mouseX = useRef<number | null>(null)
   const rafRef = useRef(0)
   const startAnimationRef = useRef<() => void>(() => {})
@@ -60,11 +72,11 @@ export function Dock({
 
   const computeTargets = useCallback((clientX: number | null) => {
     if (clientX == null) {
-      targetRef.current = ITEMS.map(() => 1)
+      targetRef.current = items.map(() => 1)
       return
     }
     let bi = 0
-    targetRef.current = ITEMS.map((item) => {
+    targetRef.current = items.map((item) => {
       if (item.kind === "sep") return 1
       const btn = itemRefs.current[bi++]
       if (!btn) return 1
@@ -77,12 +89,12 @@ export function Dock({
       const s = t * t * (3 - 2 * t)
       return 1 + s * (MAX_SCALE - 1)
     })
-  }, [])
+  }, [items])
 
   const resetMagnification = useCallback(() => {
     mouseX.current = null
-    scalesRef.current = ITEMS.map(() => 1)
-    targetRef.current = ITEMS.map(() => 1)
+    scalesRef.current = items.map(() => 1)
+    targetRef.current = items.map(() => 1)
 
     itemRefs.current.forEach((button) => {
       if (!button) return
@@ -92,7 +104,15 @@ export function Dock({
         .querySelector<HTMLElement>(".pos-dock-icon")
         ?.style.removeProperty("transform")
     })
-  }, [])
+  }, [items])
+
+  useEffect(() => {
+    const buttonCount = items.filter((item) => item.kind !== "sep").length
+    scalesRef.current = items.map(() => 1)
+    targetRef.current = items.map(() => 1)
+    itemRefs.current.length = buttonCount
+    setFocusIndex((current) => Math.min(current, Math.max(0, buttonCount - 1)))
+  }, [items])
 
   // Run the magnification loop only while values are moving. Pointer movement
   // restarts it, so the dock does no layout work while it is idle.
@@ -115,7 +135,7 @@ export function Dock({
 
       // apply transforms without React re-render
       let bi = 0
-      ITEMS.forEach((item, i) => {
+      items.forEach((item, i) => {
         if (item.kind === "sep") return
         const btn = itemRefs.current[bi++]
         if (!btn) return
@@ -158,7 +178,7 @@ export function Dock({
       startAnimationRef.current = () => {}
       resetMagnification()
     }
-  }, [computeTargets, resetMagnification])
+  }, [computeTargets, items, resetMagnification])
 
   const onMove = useCallback((e: RE) => {
     mouseX.current = e.clientX
@@ -219,18 +239,20 @@ export function Dock({
         onPointerMove={onMove}
         onPointerLeave={onLeave}
       >
-        {ITEMS.map((item) => {
+        {items.map((item) => {
           if (item.kind === "sep") {
             return <span key={item.id} className="pos-dock-sep" aria-hidden />
           }
           const idx = bi++
           const isRunning = item.kind === "app" ? running.has(item.id) : false
           const isActive = item.kind === "app" && activeApp === item.id
+          const isWindowOpen =
+            item.kind === "app" ? openApps.has(item.id) : false
           const isOpen = item.kind === "trash" && trashFull
           const tip =
             item.kind === "trash"
               ? trashFull
-                ? "Trash (full) — double-click to empty"
+                ? "Trash (full)"
                 : "Trash (empty)"
               : item.title
           const accessibleLabel =
@@ -265,16 +287,13 @@ export function Dock({
                   event.currentTarget.classList.remove("launching")
                 }
               }}
-              onDoubleClick={() => {
-                if (item.kind === "trash" && trashFull) onEmptyTrash?.()
-              }}
             >
               <span className="pos-dock-icon" aria-hidden>
                 <AppIcon
                   id={item.id}
                   size={BASE}
                   appearance={appearance}
-                  open={isRunning || isOpen}
+                  open={isWindowOpen || isOpen}
                 />
               </span>
               <span className="pos-dock-tip" role="tooltip" aria-hidden="true">

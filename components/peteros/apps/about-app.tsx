@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react"
@@ -57,6 +58,8 @@ export function AboutApp({ suspended = false }: Props) {
   const [tab, setTab] = useState<Tab>("overview")
   const [station, setStation] = useState<StationId>("deloitte")
   const [now, setNow] = useState<Date | null>(null)
+  const [tabOrientation, setTabOrientation] = useState<"vertical" | "horizontal">("vertical")
+  const layoutRef = useRef<HTMLDivElement>(null)
   const deloitte = experiences.find((e) => e.company === "Deloitte")
   const current = experiences.filter((e) => e.current)
   const queuedCount = current.filter((e) => e.company === "Deloitte").length
@@ -73,6 +76,20 @@ export function AboutApp({ suspended = false }: Props) {
     const interval = window.setInterval(tick, 1000)
     return () => window.clearInterval(interval)
   }, [suspended])
+
+  useEffect(() => {
+    const layout = layoutRef.current
+    if (!layout) return
+    const update = () => {
+      if (layout.clientWidth > 0) {
+        setTabOrientation(layout.clientWidth <= 500 ? "horizontal" : "vertical")
+      }
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(layout)
+    return () => observer.disconnect()
+  }, [])
 
   const shanghaiTime = now
     ? new Intl.DateTimeFormat("en-GB", {
@@ -93,8 +110,9 @@ export function AboutApp({ suspended = false }: Props) {
     const currentIndex = tabs.indexOf(currentTab)
     let nextIndex = currentIndex
 
-    if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % tabs.length
-    else if (event.key === "ArrowLeft")
+    if (event.key === "ArrowRight" || event.key === "ArrowDown")
+      nextIndex = (currentIndex + 1) % tabs.length
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp")
       nextIndex = (currentIndex - 1 + tabs.length) % tabs.length
     else if (event.key === "Home") nextIndex = 0
     else if (event.key === "End") nextIndex = tabs.length - 1
@@ -108,7 +126,7 @@ export function AboutApp({ suspended = false }: Props) {
 
   return (
     <div className="mac-app about-app">
-      <div className="about-layout">
+      <div className="about-layout" ref={layoutRef}>
         <aside className="about-toolbar">
           <div className="about-toolbar-brand">
             <span className="about-toolbar-monogram" aria-hidden="true">
@@ -119,7 +137,12 @@ export function AboutApp({ suspended = false }: Props) {
             </span>
           </div>
           <span className="about-toolbar-section">System profile</span>
-          <div className="about-tabset" role="tablist" aria-label="System profile views">
+          <div
+            className="about-tabset"
+            role="tablist"
+            aria-label="System profile views"
+            aria-orientation={tabOrientation}
+          >
             {TAB_LABELS.map(([id, label]) => (
               <button
                 key={id}
@@ -173,7 +196,7 @@ export function AboutApp({ suspended = false }: Props) {
                     <h2>
                       Peter <span>Cheng</span>
                     </h2>
-                    <p>{personalInfo.title}</p>
+                    <p>Incoming Analyst · Technology Transformation</p>
                   </div>
 
                   <div className="about-local-time">
@@ -271,17 +294,33 @@ export function AboutApp({ suspended = false }: Props) {
 
             {tab === "experience" && (
               <div className="about-timeline">
-                {experiences.map((e) => (
+                {experiences.map((e) => {
+                  const queued = e.company === "Deloitte"
+                  return (
                   <article key={e.id} className="about-exp-card">
                     <div className="about-exp-rail">
-                      <span className={e.current ? "about-exp-dot on" : "about-exp-dot"} />
+                      <span
+                        className={
+                          queued
+                            ? "about-exp-dot queued"
+                            : e.current
+                              ? "about-exp-dot on"
+                              : "about-exp-dot"
+                        }
+                      />
                     </div>
                     <div className="about-exp-body">
                       <header>
                         <strong>{e.title}</strong>
                         <span className="about-exp-meta">
                           {e.company}
-                          {e.current ? " · now" : e.endDate ? ` · ${e.endDate.slice(0, 4)}` : ""}
+                          {queued
+                            ? " · incoming"
+                            : e.current
+                              ? " · now"
+                              : e.endDate
+                                ? ` · ${e.endDate.slice(0, 4)}`
+                                : ""}
                         </span>
                       </header>
                       <ul>
@@ -291,7 +330,8 @@ export function AboutApp({ suspended = false }: Props) {
                       </ul>
                     </div>
                   </article>
-                ))}
+                  )
+                })}
                 {awards.length > 0 && (
                   <div className="about-awards">
                     <h3>Awards</h3>
@@ -312,7 +352,7 @@ export function AboutApp({ suspended = false }: Props) {
               <div className="about-skills">
                 {(
                   [
-                    ["languages", "Languages"],
+                    ["languages", "Programming languages"],
                     ["ml", "ML & Data"],
                     ["mobile", "Mobile & Reality"],
                     ["tools", "Platforms"],
@@ -332,7 +372,7 @@ export function AboutApp({ suspended = false }: Props) {
                   </section>
                 ))}
                 <section>
-                  <h3>Languages</h3>
+                  <h3>Spoken languages</h3>
                   <div className="about-skill-cloud">
                     {languages.map((l) => (
                       <span key={l.id} className="about-skill-pill soft">

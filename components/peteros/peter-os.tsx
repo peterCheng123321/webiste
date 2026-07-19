@@ -31,7 +31,11 @@ import { PaintApp } from "./apps/paint-app"
 import { AppIcon } from "./app-icon"
 import { Dock } from "./dock"
 import { MenuBar } from "./menu-bar"
-import { PeterOSContext, type IconAppearance } from "./context"
+import {
+  PeterOSContext,
+  type IconAppearance,
+  type PeterOSTrashEntry,
+} from "./context"
 import { AnimatePresence } from "motion/react"
 
 type Mode = "embedded" | "fullscreen" | "page"
@@ -94,7 +98,10 @@ export function PeterOS({
   const [zTop, setZTop] = useState(10)
   const [clock, setClock] = useState("")
   const [appearance, setAppearanceState] = useState<IconAppearance>("light")
-  const [trashFull, setTrashFull] = useState(false)
+  const [trashItems, setTrashItems] = useState<PeterOSTrashEntry[]>([])
+  const [purgedTrashKeys, setPurgedTrashKeys] = useState<string[]>([])
+  const [finderTrashOpenToken, setFinderTrashOpenToken] = useState(0)
+  const [finderTrashConfirmToken, setFinderTrashConfirmToken] = useState(0)
   const [selectedDesktopApp, setSelectedDesktopApp] = useState<AppId | null>(null)
   const [desktopMenu, setDesktopMenu] = useState<DesktopMenuState>(null)
 
@@ -167,6 +174,7 @@ export function PeterOS({
         ...place,
         z: 10,
         minimized: false,
+        closed: false,
         maximized: false,
       },
     ])
@@ -178,12 +186,19 @@ export function PeterOS({
 
     setWindows((current) =>
       current.map((win) => {
-        if (win.maximized) return win
-
-        const width = Math.min(win.width, Math.max(240, bounds.w - 32))
+        const meta = appMeta(win.appId)
+        const availableWidth = Math.max(240, bounds.w - 32)
+        const availableHeight = Math.max(
+          180,
+          bounds.h - (bounds.h <= 500 ? 150 : 110),
+        )
+        const width = Math.min(
+          Math.max(win.width, Math.min(meta.minWidth, availableWidth)),
+          availableWidth,
+        )
         const verticalClearance = bounds.h <= 500 ? 150 : 110
         const height = Math.min(
-          win.height,
+          Math.max(win.height, Math.min(meta.minHeight, availableHeight)),
           Math.max(180, bounds.h - verticalClearance),
         )
         const x = Math.min(
@@ -211,7 +226,9 @@ export function PeterOS({
       const next = z + 1
       setWindows((ws) => {
         return ws.map((w) =>
-          w.id === id ? { ...w, z: next, minimized: false } : w
+          w.id === id
+            ? { ...w, z: next, minimized: false, closed: false }
+            : w
         )
       })
       return next
@@ -232,10 +249,19 @@ export function PeterOS({
     setZTop((z) => {
       const nextZ = z + 1
       setWindows((ws) => {
-        const existing = ws.find((w) => w.appId === id)
+        const existing = [...ws]
+          .filter((w) => w.appId === id)
+          .sort((a, b) => {
+            const aVisible = !a.minimized && !a.closed ? 1 : 0
+            const bVisible = !b.minimized && !b.closed ? 1 : 0
+            if (aVisible !== bVisible) return bVisible - aVisible
+            return b.z - a.z
+          })[0]
         if (existing) {
           return ws.map((w) =>
-            w.id === existing.id ? { ...w, minimized: false, z: nextZ } : w
+            w.id === existing.id
+              ? { ...w, minimized: false, closed: false, z: nextZ }
+              : w
           )
         }
         const place = defaultPlacement(id, ws.length, {
@@ -257,6 +283,53 @@ export function PeterOS({
             ...place,
             z: nextZ,
             minimized: false,
+            closed: false,
+            maximized: false,
+          },
+        ]
+      })
+      return nextZ
+    })
+  }, [])
+
+  const openNewApp = useCallback((appId: AppId | string) => {
+    if (!isAppId(appId)) return
+    const id = appId
+
+    setRunning((current) => {
+      if (current.has(id)) return current
+      const next = new Set(current)
+      next.add(id)
+      return next
+    })
+
+    setZTop((z) => {
+      const nextZ = z + 1
+      setWindows((ws) => {
+        const place = defaultPlacement(id, ws.length, {
+          w:
+            desktopRef.current?.clientWidth ??
+            rootRef.current?.clientWidth ??
+            800,
+          h:
+            desktopRef.current?.clientHeight ??
+            rootRef.current?.clientHeight ??
+            500,
+        })
+        const retained =
+          id === "finder"
+            ? ws.filter((window) => !(window.appId === "finder" && window.closed))
+            : ws
+        return [
+          ...retained,
+          {
+            id: nextId(),
+            appId: id,
+            title: id === "about" ? "Peter // System Profiler" : appMeta(id).title,
+            ...place,
+            z: nextZ,
+            minimized: false,
+            closed: false,
             maximized: false,
           },
         ]
@@ -332,21 +405,46 @@ export function PeterOS({
     [openApp],
   )
 
-  const putInTrash = useCallback(() => setTrashFull(true), [])
-  const emptyTrash = useCallback(() => setTrashFull(false), [])
+  const putInTrash = useCallback((entry: PeterOSTrashEntry) => {
+    setTrashItems((current) =>
+      current.some((item) => item.key === entry.key)
+        ? current
+        : [...current, entry],
+    )
+  }, [])
+  const restoreTrashItem = useCallback((key: string) => {
+    setTrashItems((current) => current.filter((item) => item.key !== key))
+  }, [])
+  const emptyTrash = useCallback(() => {
+    const keys = trashItems.map((item) => item.key)
+    setPurgedTrashKeys((purged) => [...new Set([...purged, ...keys])])
+    setTrashItems([])
+  }, [trashItems])
+  const trashFull = trashItems.length > 0
 
   const focusDockApp = useCallback((appId?: AppId) => {
     if (!appId) return
     requestAnimationFrame(() => {
-      rootRef.current
-        ?.querySelector<HTMLButtonElement>(`[data-dock-id="${appId}"]`)
-        ?.focus({ preventScroll: true })
+      requestAnimationFrame(() => {
+        const dock = rootRef.current?.querySelector<HTMLElement>(".pos-dock")
+        const preferred = dock?.querySelector<HTMLButtonElement>(
+          `[data-dock-id="${appId}"]`,
+        )
+        const fallback = dock?.querySelector<HTMLButtonElement>("[data-dock-item]")
+        ;(preferred ?? fallback)?.focus({ preventScroll: true })
+      })
     })
   }, [])
 
   const close = useCallback((id: string) => {
     const appId = windows.find((window) => window.id === id)?.appId
-    setWindows((ws) => ws.filter((w) => w.id !== id))
+    setWindows((ws) =>
+      ws.map((window) =>
+        window.id === id
+          ? { ...window, minimized: false, closed: true }
+          : window,
+      ),
+    )
     focusDockApp(appId)
   }, [focusDockApp, windows])
 
@@ -363,7 +461,11 @@ export function PeterOS({
 
   const minimize = useCallback((id: string) => {
     const appId = windows.find((window) => window.id === id)?.appId
-    setWindows((ws) => ws.map((w) => (w.id === id ? { ...w, minimized: true } : w)))
+    setWindows((ws) =>
+      ws.map((w) =>
+        w.id === id ? { ...w, minimized: true, closed: false } : w,
+      ),
+    )
     focusDockApp(appId)
   }, [focusDockApp, windows])
 
@@ -385,7 +487,7 @@ export function PeterOS({
 
   const focusedId = useMemo(() => {
     const top = [...windows]
-      .filter((w) => !w.minimized)
+      .filter((w) => !w.minimized && !w.closed)
       .sort((a, b) => b.z - a.z)[0]
     return top?.id ?? null
   }, [windows])
@@ -412,19 +514,42 @@ export function PeterOS({
   }, [focusedId, maximize])
 
   const closeAll = useCallback(() => {
-    setWindows([])
+    setWindows((current) =>
+      current.map((window) => ({
+        ...window,
+        minimized: false,
+        closed: true,
+      })),
+    )
   }, [])
 
-  const renderApp = (appId: AppId) => {
-    switch (appId) {
+  const openTrash = useCallback(() => {
+    setFinderTrashOpenToken((token) => token + 1)
+    openApp("finder")
+  }, [openApp])
+
+  const requestEmptyTrash = useCallback(() => {
+    setFinderTrashOpenToken((token) => token + 1)
+    setFinderTrashConfirmToken((token) => token + 1)
+    openApp("finder")
+  }, [openApp])
+
+  const renderApp = (win: WindowState, hidden: boolean) => {
+    switch (win.appId) {
       case "about":
-        return <AboutApp suspended={suspended} />
+        return <AboutApp suspended={suspended || hidden} />
       case "projects":
         return <ProjectsApp onOpenApp={openApp} />
       case "resume":
         return <ResumeApp />
       case "finder":
-        return <FinderApp onOpenApp={openApp} />
+        return (
+          <FinderApp
+            onOpenApp={openApp}
+            openTrashToken={win.id === focusedId ? finderTrashOpenToken : 0}
+            confirmTrashToken={win.id === focusedId ? finderTrashConfirmToken : 0}
+          />
+        )
       case "terminal":
         return <TerminalApp onOpenApp={openApp} />
       case "scheduler":
@@ -432,7 +557,7 @@ export function PeterOS({
       case "ats":
         return <AtsApp />
       case "sensor":
-        return <SensorApp suspended={suspended} />
+        return <SensorApp suspended={suspended || hidden} />
       case "segment":
         return <SegmentApp />
       case "paint":
@@ -456,12 +581,22 @@ export function PeterOS({
       : appMeta(focusedAppId).title
     : "Finder"
 
+  const openApps = useMemo(
+    () =>
+      new Set(
+        windows
+          .filter((window) => !window.closed)
+          .map((window) => window.appId),
+      ),
+    [windows],
+  )
+
   const isAppOpen = useCallback(
     (id: string) => {
       if (!isAppId(id)) return false
-      return running.has(id)
+      return openApps.has(id)
     },
-    [running]
+    [openApps]
   )
 
   const ctx = useMemo(
@@ -469,12 +604,26 @@ export function PeterOS({
       appearance,
       setAppearance,
       openApp,
+      trashItems,
+      purgedTrashKeys,
       trashFull,
       emptyTrash,
       putInTrash,
+      restoreTrashItem,
       isAppOpen,
     }),
-    [appearance, setAppearance, openApp, trashFull, emptyTrash, putInTrash, isAppOpen]
+    [
+      appearance,
+      setAppearance,
+      openApp,
+      trashItems,
+      purgedTrashKeys,
+      trashFull,
+      emptyTrash,
+      putInTrash,
+      restoreTrashItem,
+      isAppOpen,
+    ]
   )
 
   useEffect(() => {
@@ -483,10 +632,19 @@ export function PeterOS({
     const onShortcut = (event: KeyboardEvent) => {
       if (event.key === "Escape" && desktopMenu) {
         event.preventDefault()
+        event.stopPropagation()
+        event.stopImmediatePropagation()
         setDesktopMenu(null)
         return
       }
       if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+        const target = event.target
+        if (
+          target instanceof Element &&
+          target.closest(".pos-window, .pos-menubar, .pos-dock")
+        ) {
+          return
+        }
         event.preventDefault()
         setDesktopMenu({
           x: Math.max(8, Math.min(32, bounds.w - 218)),
@@ -505,13 +663,13 @@ export function PeterOS({
         minimizeFocused()
       } else if (key === "n") {
         event.preventDefault()
-        openApp("finder")
+        openNewApp("finder")
       } else if (key === "q" && focusedId) {
         event.preventDefault()
         quitFocused()
       } else if (event.shiftKey && event.key === "Backspace" && trashFull) {
         event.preventDefault()
-        emptyTrash()
+        requestEmptyTrash()
       }
     }
 
@@ -522,11 +680,11 @@ export function PeterOS({
     bounds.h,
     bounds.w,
     desktopMenu,
-    emptyTrash,
     focusedId,
     minimizeFocused,
-    openApp,
+    openNewApp,
     quitFocused,
+    requestEmptyTrash,
     suspended,
     trashFull,
   ])
@@ -544,18 +702,19 @@ export function PeterOS({
           if (!(target instanceof Element)) return
           if (!target.closest(".pos-context-menu")) setDesktopMenu(null)
         }}
-        onContextMenu={(e) => e.preventDefault()}
       >
         <MenuBar
           appName={appName}
           activeApp={focusedAppId}
           appearance={appearance}
           openApp={openApp}
+          openNewApp={openNewApp}
           closeFocused={closeFocused}
           quitFocused={quitFocused}
           minimizeFocused={minimizeFocused}
           maximizeFocused={maximizeFocused}
           closeAll={closeAll}
+          requestEmptyTrash={requestEmptyTrash}
           mode={mode}
           onExpand={onExpand}
           onCloseExpand={onCloseExpand}
@@ -623,7 +782,7 @@ export function PeterOS({
                 type="button"
                 role="menuitem"
                 onClick={() => {
-                  openApp("finder")
+                  openNewApp("finder")
                   setDesktopMenu(null)
                 }}
               >
@@ -704,7 +863,7 @@ export function PeterOS({
                     id={app.id}
                     size={72}
                     appearance={appearance}
-                    open={running.has(app.id)}
+                    open={openApps.has(app.id)}
                   />
                 </span>
                 <span className="pos-desktop-icon-label">{app.title}</span>
@@ -713,9 +872,7 @@ export function PeterOS({
           </div>
 
           <AnimatePresence>
-            {windows
-              .filter((win) => !win.minimized)
-              .map((win) => (
+            {windows.map((win) => (
                 <WindowFrame
                   key={win.id}
                   win={win}
@@ -727,8 +884,9 @@ export function PeterOS({
                   onMove={move}
                   onResize={resize}
                   bounds={{ width: bounds.w, height: bounds.h }}
+                  hidden={win.minimized || win.closed}
                 >
-                  {renderApp(win.appId)}
+                  {renderApp(win, win.minimized || win.closed)}
                 </WindowFrame>
               ))}
           </AnimatePresence>
@@ -738,12 +896,11 @@ export function PeterOS({
           appearance={appearance}
           activeApp={focusedAppId}
           running={running}
+          openApps={openApps}
           trashFull={trashFull}
-          onEmptyTrash={emptyTrash}
           onOpen={(id) => {
             if (id === "trash") {
-              // single click: open Finder at trash metaphor; empty via double-click
-              openApp("finder")
+              openTrash()
             } else openApp(id)
           }}
         />

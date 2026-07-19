@@ -1,25 +1,22 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react"
 import { defaultData } from "@/lib/default-data"
 import { AppIcon } from "../app-icon"
-import type { AppId } from "../types"
-import { usePeterOS } from "../context"
+import {
+  usePeterOS,
+  type PeterOSTrashNode,
+} from "../context"
 
-type Item = {
-  id: string
-  name: string
-  kind: "folder" | "file" | "app"
-  appId?: AppId
-  preview?: string
+type Item = Omit<PeterOSTrashNode, "children"> & {
   children?: Item[]
   deletedKey?: string
-}
-
-type DeletedItem = {
-  key: string
-  item: Item
-  parentId: string
 }
 
 const TRASH_FOLDER: Item = {
@@ -27,8 +24,6 @@ const TRASH_FOLDER: Item = {
   name: "Trash",
   kind: "folder",
 }
-
-let finderTrashItems: DeletedItem[] = []
 
 function buildTree(): Item {
   return {
@@ -110,17 +105,35 @@ function buildTree(): Item {
   }
 }
 
-type Props = { onOpenApp?: (app: string) => void }
+type Props = {
+  onOpenApp?: (app: string) => void
+  openTrashToken?: number
+  confirmTrashToken?: number
+}
 
-export function FinderApp({ onOpenApp }: Props) {
-  const { appearance, emptyTrash, isAppOpen, putInTrash, trashFull } = usePeterOS()
+export function FinderApp({
+  onOpenApp,
+  openTrashToken = 0,
+  confirmTrashToken = 0,
+}: Props) {
+  const {
+    appearance,
+    emptyTrash,
+    isAppOpen,
+    purgedTrashKeys,
+    putInTrash,
+    restoreTrashItem,
+    trashItems: deletedItems,
+  } = usePeterOS()
   const root = useMemo(() => buildTree(), [])
+  const consumedTrashOpenToken = useRef(0)
+  const consumedTrashConfirmToken = useRef(0)
+  const finderRootRef = useRef<HTMLDivElement>(null)
+  const emptySheetRef = useRef<HTMLDivElement>(null)
   const [path, setPath] = useState<Item[]>([root])
   const [selected, setSelected] = useState<Item | null>(null)
   const [view, setView] = useState<"icons" | "list">("icons")
-  const [deletedItems, setDeletedItems] = useState<DeletedItem[]>(() =>
-    trashFull ? finderTrashItems : [],
-  )
+  const [confirmEmpty, setConfirmEmpty] = useState(false)
   const current = path[path.length - 1]
   const isTrashView = current.id === TRASH_FOLDER.id
   const trashItems = useMemo(
@@ -137,15 +150,81 @@ export function FinderApp({ onOpenApp }: Props) {
         (item) =>
           !deletedItems.some(
             (deleted) => deleted.parentId === current.id && deleted.item.id === item.id,
-          ),
+          ) && !purgedTrashKeys.includes(`${current.id}:${item.id}`),
       )
 
   useEffect(() => {
-    if (trashFull) return
-    finderTrashItems = []
-    setDeletedItems((currentItems) => (currentItems.length > 0 ? [] : currentItems))
+    if (openTrashToken <= consumedTrashOpenToken.current) return
+    consumedTrashOpenToken.current = openTrashToken
+    setPath([root, TRASH_FOLDER])
+    setSelected(null)
+  }, [openTrashToken, root])
+
+  useEffect(() => {
+    if (confirmTrashToken <= consumedTrashConfirmToken.current) return
+    consumedTrashConfirmToken.current = confirmTrashToken
+    setPath([root, TRASH_FOLDER])
+    setSelected(null)
+    if (deletedItems.length > 0) setConfirmEmpty(true)
+  }, [confirmTrashToken, deletedItems.length, root])
+
+  useEffect(() => {
+    if (deletedItems.length > 0) return
     setSelected((currentItem) => (currentItem?.deletedKey ? null : currentItem))
-  }, [trashFull])
+    setConfirmEmpty(false)
+  }, [deletedItems.length])
+
+  useEffect(() => {
+    if (!confirmEmpty) return
+    const previousFocus = document.activeElement as HTMLElement | null
+    const frame = requestAnimationFrame(() => {
+      emptySheetRef.current
+        ?.querySelector<HTMLButtonElement>("button")
+        ?.focus({ preventScroll: true })
+    })
+    return () => {
+      cancelAnimationFrame(frame)
+      requestAnimationFrame(() => {
+        if (
+          previousFocus?.isConnected &&
+          !previousFocus.matches(":disabled")
+        ) {
+          previousFocus.focus({ preventScroll: true })
+          return
+        }
+        finderRootRef.current
+          ?.querySelector<HTMLButtonElement>("button:not(:disabled)")
+          ?.focus({ preventScroll: true })
+      })
+    }
+  }, [confirmEmpty])
+
+  const onEmptySheetKeyDown = (
+    event: ReactKeyboardEvent<HTMLDivElement>,
+  ) => {
+    if (event.key === "Escape") {
+      event.preventDefault()
+      event.stopPropagation()
+      setConfirmEmpty(false)
+      return
+    }
+    if (event.key !== "Tab") return
+    const buttons = Array.from(
+      event.currentTarget.querySelectorAll<HTMLButtonElement>(
+        "button:not(:disabled)",
+      ),
+    )
+    if (!buttons.length) return
+    const first = buttons[0]
+    const last = buttons.at(-1) ?? first
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
 
   const isSelected = (item: Item) =>
     item.deletedKey
@@ -205,32 +284,23 @@ export function FinderApp({ onOpenApp }: Props) {
     }
 
     const key = `${current.id}:${selected.id}`
-    const nextItems = deletedItems.some((deleted) => deleted.key === key)
-      ? deletedItems
-      : [...deletedItems, { key, item: selected, parentId: current.id }]
-    finderTrashItems = nextItems
-    setDeletedItems(nextItems)
+    if (!deletedItems.some((deleted) => deleted.key === key)) {
+      putInTrash({ key, item: selected, parentId: current.id })
+    }
     setSelected(null)
-    putInTrash()
   }
 
   const restoreSelected = () => {
     if (!isTrashView || !selected?.deletedKey) return
 
-    const remaining = deletedItems.filter(
-      (deleted) => deleted.key !== selected.deletedKey,
-    )
-    finderTrashItems = remaining
-    setDeletedItems(remaining)
+    restoreTrashItem(selected.deletedKey)
     setSelected(null)
-    if (remaining.length === 0) emptyTrash()
   }
 
   const emptyFinderTrash = () => {
-    finderTrashItems = []
-    setDeletedItems([])
     setSelected(null)
     emptyTrash()
+    setConfirmEmpty(false)
   }
 
   const canMoveSelectedToTrash =
@@ -239,12 +309,60 @@ export function FinderApp({ onOpenApp }: Props) {
     selected?.kind !== "app" &&
     selected?.id !== "apps"
 
+  const onItemKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    item: Item,
+  ) => {
+    if (event.key === "Enter") {
+      event.preventDefault()
+      open(item)
+      return
+    }
+    if (event.key === " ") {
+      event.preventDefault()
+      setSelected(item)
+      return
+    }
+
+    const options = Array.from(
+      event.currentTarget
+        .closest('[role="listbox"]')
+        ?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? [],
+    )
+    const currentIndex = options.indexOf(event.currentTarget)
+    if (currentIndex < 0) return
+    const columns =
+      view === "icons"
+        ? Math.max(
+            1,
+            Math.floor(
+              (event.currentTarget.parentElement?.clientWidth ?? 90) / 90,
+            ),
+          )
+        : 1
+    let nextIndex = currentIndex
+    if (event.key === "ArrowRight") nextIndex++
+    else if (event.key === "ArrowLeft") nextIndex--
+    else if (event.key === "ArrowDown") nextIndex += columns
+    else if (event.key === "ArrowUp") nextIndex -= columns
+    else if (event.key === "Home") nextIndex = 0
+    else if (event.key === "End") nextIndex = options.length - 1
+    else return
+
+    event.preventDefault()
+    nextIndex = Math.max(0, Math.min(options.length - 1, nextIndex))
+    const next = items[nextIndex]
+    if (next) setSelected(next)
+    options[nextIndex]?.focus()
+  }
+
   return (
-    <div className="mac-app finder-app">
+    <div className="mac-app finder-app" ref={finderRootRef}>
       <div className="finder-toolbar">
         <button
           type="button"
           className="mac-btn"
+          aria-label="Back to previous folder"
           disabled={path.length <= 1}
           onClick={() => {
             setPath((p) => p.slice(0, -1))
@@ -259,6 +377,7 @@ export function FinderApp({ onOpenApp }: Props) {
               key={n.id}
               type="button"
               className="finder-crumb"
+              aria-current={i === path.length - 1 ? "page" : undefined}
               onClick={() => {
                 setPath((p) => p.slice(0, i + 1))
                 setSelected(null)
@@ -269,13 +388,33 @@ export function FinderApp({ onOpenApp }: Props) {
             </button>
           ))}
         </div>
+        <select
+          className="finder-location"
+          aria-label="Current Finder location"
+          value={current.id}
+          onChange={(event) => {
+            if (event.target.value === root.id) {
+              setPath([root])
+              setSelected(null)
+            } else {
+              goFavorite(event.target.value)
+            }
+          }}
+        >
+          <option value={root.id}>Peter</option>
+          {favorites.map((favorite) => (
+            <option key={favorite.target} value={favorite.target}>
+              {favorite.label}
+            </option>
+          ))}
+        </select>
         <div className="finder-view-toggle">
           {isTrashView && (
             <button
               type="button"
               className="mac-btn"
-              disabled={!trashFull && deletedItems.length === 0}
-              onClick={emptyFinderTrash}
+              disabled={deletedItems.length === 0}
+              onClick={() => setConfirmEmpty(true)}
             >
               Empty Trash
             </button>
@@ -317,7 +456,7 @@ export function FinderApp({ onOpenApp }: Props) {
             Terminal
           </button>
           <button type="button" onClick={() => onOpenApp?.("scheduler")}>
-            Toys
+            Scheduler
           </button>
         </aside>
 
@@ -327,24 +466,25 @@ export function FinderApp({ onOpenApp }: Props) {
               {isTrashView ? "Trash is empty" : "This folder is empty"}
             </p>
           ) : view === "icons" ? (
-            <div className="finder-icons">
-              {items.map((item) => (
+            <div className="finder-icons" role="listbox" aria-label={current.name}>
+              {items.map((item, index) => (
                 <button
                   key={item.deletedKey ?? item.id}
                   type="button"
+                  role="option"
+                  aria-selected={isSelected(item)}
+                  tabIndex={isSelected(item) || (!selected && index === 0) ? 0 : -1}
                   className={
                     isSelected(item) ? "finder-icon-item active" : "finder-icon-item"
                   }
-                  onClick={(event) => {
+                  onClick={() => {
                     setSelected(item)
-                    if (
-                      event.detail === 0 ||
-                      window.matchMedia("(pointer: coarse)").matches
-                    ) {
+                    if (window.matchMedia("(pointer: coarse)").matches) {
                       open(item)
                     }
                   }}
                   onDoubleClick={() => open(item)}
+                  onKeyDown={(event) => onItemKeyDown(event, item)}
                 >
                   <span className="finder-icon-glyph">
                     {item.kind === "app" && item.appId ? (
@@ -373,22 +513,23 @@ export function FinderApp({ onOpenApp }: Props) {
               ))}
             </div>
           ) : (
-            <ul className="finder-list-view">
-              {items.map((item) => (
+            <ul className="finder-list-view" role="listbox" aria-label={current.name}>
+              {items.map((item, index) => (
                 <li key={item.deletedKey ?? item.id}>
                   <button
                     type="button"
+                    role="option"
+                    aria-selected={isSelected(item)}
+                    tabIndex={isSelected(item) || (!selected && index === 0) ? 0 : -1}
                     className={isSelected(item) ? "active" : ""}
-                    onClick={(event) => {
+                    onClick={() => {
                       setSelected(item)
-                      if (
-                        event.detail === 0 ||
-                        window.matchMedia("(pointer: coarse)").matches
-                      ) {
+                      if (window.matchMedia("(pointer: coarse)").matches) {
                         open(item)
                       }
                     }}
                     onDoubleClick={() => open(item)}
+                    onKeyDown={(event) => onItemKeyDown(event, item)}
                   >
                     <span>
                       {item.kind === "folder" ? "Folder" : item.kind === "app" ? "App" : "File"}
@@ -415,7 +556,11 @@ export function FinderApp({ onOpenApp }: Props) {
                 ) : selected.kind === "folder" ? (
                   <AppIcon id="folder" size={48} appearance={appearance} open />
                 ) : (
-                  <span className="finder-file-glyph big">DOC</span>
+                  <span
+                    className={`finder-file-glyph big${selected.name.endsWith(".pdf") ? " pdf" : ""}`}
+                  >
+                    {selected.name.endsWith(".pdf") ? "PDF" : "TXT"}
+                  </span>
                 )}
                 <div>
                   <strong>{selected.name}</strong>
@@ -454,6 +599,43 @@ export function FinderApp({ onOpenApp }: Props) {
           )}
         </aside>
       </div>
+
+      <div className="finder-statusbar" role="status">
+        <span>
+          {items.length} {items.length === 1 ? "item" : "items"}
+        </span>
+        <span>{isTrashView ? "Trash" : view === "icons" ? "Icon view" : "List view"}</span>
+      </div>
+
+      {confirmEmpty && (
+        <div className="finder-sheet-backdrop">
+          <div
+            ref={emptySheetRef}
+            className="finder-sheet"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="finder-empty-title"
+            aria-describedby="finder-empty-copy"
+            onKeyDown={onEmptySheetKeyDown}
+          >
+            <AppIcon id="trash" size={50} appearance={appearance} open />
+            <div>
+              <strong id="finder-empty-title">Empty Trash?</strong>
+              <p id="finder-empty-copy">
+                These {deletedItems.length} {deletedItems.length === 1 ? "item" : "items"} can’t be restored afterward.
+              </p>
+              <div className="finder-sheet-actions">
+                <button type="button" className="mac-btn" onClick={() => setConfirmEmpty(false)}>
+                  Cancel
+                </button>
+                <button type="button" className="mac-btn danger" onClick={emptyFinderTrash}>
+                  Empty Trash
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

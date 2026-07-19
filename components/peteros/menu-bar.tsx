@@ -26,16 +26,29 @@ export type MenuId =
   | "go"
   | "help"
 
+const MENU_ORDER: MenuId[] = [
+  "apple",
+  "app",
+  "file",
+  "edit",
+  "view",
+  "toys",
+  "go",
+  "help",
+]
+
 type Props = {
   appName: string
   activeApp: AppId | null
   appearance: IconAppearance
   openApp: (id: AppId | string) => void
+  openNewApp: (id: AppId | string) => void
   closeFocused: () => void
   quitFocused: () => void
   minimizeFocused: () => void
   maximizeFocused: () => void
   closeAll: () => void
+  requestEmptyTrash: () => void
   mode: "embedded" | "fullscreen" | "page"
   onExpand?: () => void
   onCloseExpand?: () => void
@@ -87,17 +100,19 @@ export function MenuBar({
   activeApp,
   appearance,
   openApp,
+  openNewApp,
   closeFocused,
   quitFocused,
   minimizeFocused,
   maximizeFocused,
   closeAll,
+  requestEmptyTrash,
   mode,
   onExpand,
   onCloseExpand,
   clock,
 }: Props) {
-  const { trashFull, emptyTrash, isAppOpen } = usePeterOS()
+  const { trashFull, isAppOpen } = usePeterOS()
   const [open, setOpen] = useState<MenuId | null>(null)
   const barRef = useRef<HTMLElement>(null)
   const lastTriggerRef = useRef<HTMLButtonElement | null>(null)
@@ -183,6 +198,23 @@ export function MenuBar({
         return
       }
 
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        event.preventDefault()
+        const currentMenu = MENU_ORDER.indexOf(id)
+        const direction = event.key === "ArrowRight" ? 1 : -1
+        const nextId =
+          MENU_ORDER[
+            (currentMenu + direction + MENU_ORDER.length) % MENU_ORDER.length
+          ]
+        const nextTrigger = document.getElementById(
+          triggerDomId(nextId),
+        ) as HTMLButtonElement | null
+        lastTriggerRef.current = nextTrigger
+        setOpen(nextId)
+        focusMenuEdge(nextId, "first")
+        return
+      }
+
       const items = getMenuItems(id)
       if (!items.length) return
       const current = items.indexOf(document.activeElement as HTMLButtonElement)
@@ -198,7 +230,7 @@ export function MenuBar({
       event.preventDefault()
       items[next]?.focus()
     },
-    [closeMenus, getMenuItems],
+    [closeMenus, focusMenuEdge, getMenuItems, triggerDomId],
   )
 
   const menuProps = useCallback(
@@ -293,7 +325,7 @@ export function MenuBar({
               <Item onClick={() => run(() => openApp("finder"))}>Open Finder…</Item>
               <Sep />
               <Item
-                onClick={() => run(emptyTrash)}
+                onClick={() => run(requestEmptyTrash)}
                 disabled={!trashFull}
                 kbd="⇧⌘⌫"
               >
@@ -356,8 +388,8 @@ export function MenuBar({
           {titleBtn("file", "File")}
           {open === "file" && (
             <div className="pos-menu-dropdown" {...menuProps("file")}>
-              <Item onClick={() => run(() => openApp("finder"))} kbd="⌘N">
-                Open Finder
+              <Item onClick={() => run(() => openNewApp("finder"))} kbd="⌘N">
+                New Finder Window
               </Item>
               <Item onClick={() => run(() => openApp("terminal"))}>Open Terminal</Item>
               <Sep />
@@ -388,13 +420,29 @@ export function MenuBar({
               <Item
                 onClick={() =>
                   run(() => {
-                    document.execCommand("undo")
+                    if (activeApp === "paint") {
+                      window.dispatchEvent(new Event("peteros:paint-undo"))
+                    } else {
+                      document.execCommand("undo")
+                    }
                   })
                 }
                 kbd="⌘Z"
               >
                 Undo
               </Item>
+              {activeApp === "paint" && (
+                <Item
+                  onClick={() =>
+                    run(() => {
+                      window.dispatchEvent(new Event("peteros:paint-redo"))
+                    })
+                  }
+                  kbd="⇧⌘Z"
+                >
+                  Redo
+                </Item>
+              )}
               <Sep />
               <Item
                 onClick={() =>
