@@ -49,6 +49,14 @@ const TAB_LABELS: Array<[Tab, string]> = [
   ["contact", "Ports"],
 ]
 
+const SHANGHAI_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Shanghai",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+})
+
 type Props = {
   suspended?: boolean
 }
@@ -72,9 +80,22 @@ export function AboutApp({ suspended = false }: Props) {
   useEffect(() => {
     if (suspended) return
     const tick = () => setNow(new Date())
-    tick()
-    const interval = window.setInterval(tick, 1000)
-    return () => window.clearInterval(interval)
+    let interval = 0
+    const start = () => {
+      if (document.hidden) return
+      tick()
+      interval = window.setInterval(tick, 1000)
+    }
+    const onVisibilityChange = () => {
+      window.clearInterval(interval)
+      if (!document.hidden) start()
+    }
+    start()
+    document.addEventListener("visibilitychange", onVisibilityChange)
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener("visibilitychange", onVisibilityChange)
+    }
   }, [suspended])
 
   useEffect(() => {
@@ -91,15 +112,7 @@ export function AboutApp({ suspended = false }: Props) {
     return () => observer.disconnect()
   }, [])
 
-  const shanghaiTime = now
-    ? new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Asia/Shanghai",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      }).format(now)
-    : "--:--:--"
+  const shanghaiTime = now ? SHANGHAI_TIME_FORMATTER.format(now) : "--:--:--"
   const bootWindow = deloitte?.startDate.replace("-", ".") ?? "2026.08"
 
   const onTabKeyDown = (
@@ -187,6 +200,9 @@ export function AboutApp({ suspended = false }: Props) {
                       src={personalInfo.photo}
                       alt={personalInfo.name}
                       className="about-avatar"
+                      width={56}
+                      height={56}
+                      decoding="async"
                     />
                     <span className="about-avatar-signal" aria-hidden="true" />
                   </div>

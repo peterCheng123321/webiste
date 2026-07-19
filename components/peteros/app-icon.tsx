@@ -25,63 +25,63 @@ type Props = {
  */
 const PAIR: Record<IconId, { closed: string; open: string; openMeans: string }> = {
   about: {
-    closed: "/icons/peteros/about-closed.png",
-    open: "/icons/peteros/about-open.png",
+    closed: "/icons/peteros/about-closed.webp",
+    open: "/icons/peteros/about-open.webp",
     openMeans: "profile open",
   },
   projects: {
-    closed: "/icons/peteros/projects-closed.png",
-    open: "/icons/peteros/projects-open.png",
+    closed: "/icons/peteros/projects-closed.webp",
+    open: "/icons/peteros/projects-open.webp",
     openMeans: "toolbox open",
   },
   resume: {
-    closed: "/icons/peteros/resume-closed.png",
-    open: "/icons/peteros/resume-open.png",
+    closed: "/icons/peteros/resume-closed.webp",
+    open: "/icons/peteros/resume-open.webp",
     openMeans: "document open",
   },
   finder: {
-    closed: "/icons/peteros/finder-closed.png",
-    open: "/icons/peteros/finder-open.png",
+    closed: "/icons/peteros/finder-closed.webp",
+    open: "/icons/peteros/finder-open.webp",
     openMeans: "folder window open",
   },
   terminal: {
-    closed: "/icons/peteros/terminal-closed.png",
-    open: "/icons/peteros/terminal-open.png",
+    closed: "/icons/peteros/terminal-closed.webp",
+    open: "/icons/peteros/terminal-open.webp",
     openMeans: "session active",
   },
   scheduler: {
-    closed: "/icons/peteros/scheduler-closed.png",
-    open: "/icons/peteros/scheduler-open.png",
+    closed: "/icons/peteros/scheduler-closed.webp",
+    open: "/icons/peteros/scheduler-open.webp",
     openMeans: "day sheet open",
   },
   ats: {
-    closed: "/icons/peteros/ats-closed.png",
-    open: "/icons/peteros/ats-open.png",
+    closed: "/icons/peteros/ats-closed.webp",
+    open: "/icons/peteros/ats-open.webp",
     openMeans: "mail open",
   },
   sensor: {
-    closed: "/icons/peteros/sensor-closed.png",
-    open: "/icons/peteros/sensor-open.png",
+    closed: "/icons/peteros/sensor-closed.webp",
+    open: "/icons/peteros/sensor-open.webp",
     openMeans: "network live",
   },
   segment: {
-    closed: "/icons/peteros/segment-closed.png",
-    open: "/icons/peteros/segment-open.png",
+    closed: "/icons/peteros/segment-closed.webp",
+    open: "/icons/peteros/segment-open.webp",
     openMeans: "gallery open",
   },
   paint: {
-    closed: "/icons/peteros/paint-closed.png",
-    open: "/icons/peteros/paint-open.png",
+    closed: "/icons/peteros/paint-closed.webp",
+    open: "/icons/peteros/paint-open.webp",
     openMeans: "drawing in progress",
   },
   trash: {
-    closed: "/icons/peteros/trash-closed.png",
-    open: "/icons/peteros/trash-open.png",
+    closed: "/icons/peteros/trash-closed.webp",
+    open: "/icons/peteros/trash-open.webp",
     openMeans: "trash full",
   },
   folder: {
-    closed: "/icons/peteros/folder-closed.png",
-    open: "/icons/peteros/folder-open.png",
+    closed: "/icons/peteros/folder-closed.webp",
+    open: "/icons/peteros/folder-open.webp",
     openMeans: "folder open",
   },
 }
@@ -103,6 +103,7 @@ export function AppIcon({
       alt=""
       width={size}
       height={size}
+      decoding="async"
       className={["pos-app-icon", shownOpen ? "is-open" : "is-closed", className]
         .filter(Boolean)
         .join(" ")}

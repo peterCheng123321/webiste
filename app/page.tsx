@@ -72,7 +72,7 @@ export default function Home() {
                 </button>
               </li>
               <li>
-                <Link className="home-index-link" href="/os">
+                <Link className="home-index-link" href="/os" prefetch={false}>
                   <span>Full desktop</span>
                   <span className="home-index-sub">Dedicated route</span>
                 </Link>

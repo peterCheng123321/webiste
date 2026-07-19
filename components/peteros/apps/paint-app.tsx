@@ -21,6 +21,8 @@ export function PaintApp() {
   const drawing = useRef(false)
   const activePointer = useRef<number | null>(null)
   const last = useRef<{ x: number; y: number } | null>(null)
+  const undoRef = useRef<() => void>(() => {})
+  const redoRef = useRef<() => void>(() => {})
   const [color, setColor] = useState(COLORS[0][1])
   const [size, setSize] = useState(4)
   const [tool, setTool] = useState<Tool>("brush")
@@ -127,16 +129,19 @@ export function PaintApp() {
     setHistory((stack) => [...stack.slice(-12), next])
   }
 
+  undoRef.current = undo
+  redoRef.current = redo
+
   useEffect(() => {
-    const onUndo = () => undo()
-    const onRedo = () => redo()
+    const onUndo = () => undoRef.current()
+    const onRedo = () => redoRef.current()
     window.addEventListener("peteros:paint-undo", onUndo)
     window.addEventListener("peteros:paint-redo", onRedo)
     return () => {
       window.removeEventListener("peteros:paint-undo", onUndo)
       window.removeEventListener("peteros:paint-redo", onRedo)
     }
-  })
+  }, [])
 
   const clear = () => {
     const c = canvasRef.current

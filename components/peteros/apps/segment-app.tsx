@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -33,8 +34,37 @@ export function SegmentApp() {
     ox: number
     oy: number
     pointerId: number
+    width: number
+    height: number
   } | null>(null)
+  const dragFrame = useRef(0)
+  const pendingDrag = useRef<{ id: number; dx: number; dy: number } | null>(null)
   const idRef = useRef(3)
+
+  const flushDrag = useCallback(() => {
+    dragFrame.current = 0
+    const pending = pendingDrag.current
+    pendingDrag.current = null
+    if (!pending) return
+    setMasks((list) =>
+      list.map((mask) =>
+        mask.id === pending.id
+          ? {
+              ...mask,
+              x: Math.max(mask.r, Math.min(100 - mask.r, mask.x + pending.dx)),
+              y: Math.max(mask.r, Math.min(100 - mask.r, mask.y + pending.dy)),
+            }
+          : mask,
+      ),
+    )
+  }, [])
+
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(dragFrame.current)
+    },
+    [],
+  )
 
   const addAt = (clientX: number, clientY: number) => {
     const el = stageRef.current
@@ -65,11 +95,15 @@ export function SegmentApp() {
       if (!m) return
       setSelected(id)
       if (tool === "move") {
+        const rect = stageRef.current?.getBoundingClientRect()
+        if (!rect) return
         drag.current = {
           id,
           ox: e.clientX,
           oy: e.clientY,
           pointerId: e.pointerId,
+          width: rect.width,
+          height: rect.height,
         }
         ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
       }
@@ -83,27 +117,25 @@ export function SegmentApp() {
 
   const onPointerMove = (e: RE) => {
     const d = drag.current
-    if (!d || d.pointerId !== e.pointerId || !stageRef.current) return
-    const rect = stageRef.current.getBoundingClientRect()
-    const dx = ((e.clientX - d.ox) / rect.width) * 100
-    const dy = ((e.clientY - d.oy) / rect.height) * 100
+    if (!d || d.pointerId !== e.pointerId) return
+    const dx = ((e.clientX - d.ox) / d.width) * 100
+    const dy = ((e.clientY - d.oy) / d.height) * 100
     d.ox = e.clientX
     d.oy = e.clientY
-    setMasks((list) =>
-      list.map((m) =>
-        m.id === d.id
-          ? {
-              ...m,
-              x: Math.max(m.r, Math.min(100 - m.r, m.x + dx)),
-              y: Math.max(m.r, Math.min(100 - m.r, m.y + dy)),
-            }
-          : m
-      )
-    )
+    const pending = pendingDrag.current
+    pendingDrag.current =
+      pending?.id === d.id
+        ? { id: d.id, dx: pending.dx + dx, dy: pending.dy + dy }
+        : { id: d.id, dx, dy }
+    if (!dragFrame.current) dragFrame.current = requestAnimationFrame(flushDrag)
   }
 
   const onPointerUp = (event: RE) => {
     if (drag.current && drag.current.pointerId !== event.pointerId) return
+    if (dragFrame.current) {
+      cancelAnimationFrame(dragFrame.current)
+      flushDrag()
+    }
     drag.current = null
     try {
       event.currentTarget.releasePointerCapture(event.pointerId)
@@ -219,9 +251,10 @@ export function SegmentApp() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/assets/peteros/segment-patient-frame.png"
+            src="/assets/peteros/segment-patient-frame.webp"
             alt="Anonymous overhead depth-camera frame of a patient on a clinical bed"
             className="seg-source-image"
+            decoding="async"
             draggable={false}
           />
           {masks.map((m) => (

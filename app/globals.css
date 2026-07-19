@@ -199,6 +199,11 @@
   }
 }
 
+html[data-peteros-open="true"] .home-grid::before,
+html[data-peteros-open="true"] .home-ambient::before {
+  animation-play-state: paused;
+}
+
 /* Name + place plate */
 .home-plate {
   display: flex;
@@ -793,6 +798,10 @@
   transform: translateZ(0);
 }
 
+.pos-shell-loading {
+  min-height: 100%;
+}
+
 /* Frozen snapshot of the homepage — the still-flat half */
 .pos-peel-page {
   position: absolute;
@@ -1027,7 +1036,7 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: #090c20 url("/wallpapers/peteros-indigo.png") center / cover no-repeat;
+  background: #090c20 url("/wallpapers/peteros-indigo.webp") center / cover no-repeat;
   filter: brightness(0.82) saturate(0.95);
 }
 
@@ -2906,6 +2915,14 @@
   color: #1d1d1f;
   font-size: 12px;
   line-height: 1.4;
+}
+
+.pos-app-loading {
+  align-items: center;
+  justify-content: center;
+  color: #6e6e73;
+  font-size: 11px;
+  letter-spacing: 0.04em;
 }
 
 .mac-app h2 {

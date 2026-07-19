@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -8,6 +9,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react"
+import dynamic from "next/dynamic"
 import {
   SYSTEM_APPS,
   TOY_APPS,
@@ -19,15 +21,6 @@ import {
 } from "./types"
 import { WindowFrame } from "./window-frame"
 import { AboutApp } from "./apps/about-app"
-import { ProjectsApp } from "./apps/projects-app"
-import { ResumeApp } from "./apps/resume-app"
-import { FinderApp } from "./apps/finder-app"
-import { TerminalApp } from "./apps/terminal-app"
-import { SchedulerApp } from "./apps/scheduler-app"
-import { AtsApp } from "./apps/ats-app"
-import { SensorApp } from "./apps/sensor-app"
-import { SegmentApp } from "./apps/segment-app"
-import { PaintApp } from "./apps/paint-app"
 import { AppIcon } from "./app-icon"
 import { Dock } from "./dock"
 import { MenuBar } from "./menu-bar"
@@ -37,6 +30,51 @@ import {
   type PeterOSTrashEntry,
 } from "./context"
 import { AnimatePresence } from "motion/react"
+
+function AppLoading() {
+  return (
+    <div className="mac-app pos-app-loading" role="status">
+      <span>Opening application…</span>
+    </div>
+  )
+}
+
+const ProjectsApp = dynamic(
+  () => import("./apps/projects-app").then((module) => module.ProjectsApp),
+  { loading: AppLoading },
+)
+const ResumeApp = dynamic(
+  () => import("./apps/resume-app").then((module) => module.ResumeApp),
+  { loading: AppLoading },
+)
+const FinderApp = dynamic(
+  () => import("./apps/finder-app").then((module) => module.FinderApp),
+  { loading: AppLoading },
+)
+const TerminalApp = dynamic(
+  () => import("./apps/terminal-app").then((module) => module.TerminalApp),
+  { loading: AppLoading },
+)
+const SchedulerApp = dynamic(
+  () => import("./apps/scheduler-app").then((module) => module.SchedulerApp),
+  { loading: AppLoading },
+)
+const AtsApp = dynamic(
+  () => import("./apps/ats-app").then((module) => module.AtsApp),
+  { loading: AppLoading },
+)
+const SensorApp = dynamic(
+  () => import("./apps/sensor-app").then((module) => module.SensorApp),
+  { loading: AppLoading },
+)
+const SegmentApp = dynamic(
+  () => import("./apps/segment-app").then((module) => module.SegmentApp),
+  { loading: AppLoading },
+)
+const PaintApp = dynamic(
+  () => import("./apps/paint-app").then((module) => module.PaintApp),
+  { loading: AppLoading },
+)
 
 type Mode = "embedded" | "fullscreen" | "page"
 
@@ -82,7 +120,56 @@ function readAppearance(): IconAppearance {
   return "light"
 }
 
-export function PeterOS({
+type AppContentProps = {
+  appId: AppId
+  focused: boolean
+  hidden: boolean
+  suspended: boolean
+  finderTrashOpenToken: number
+  finderTrashConfirmToken: number
+  onOpenApp: (appId: AppId | string) => void
+}
+
+const AppContent = memo(function AppContent({
+  appId,
+  focused,
+  hidden,
+  suspended,
+  finderTrashOpenToken,
+  finderTrashConfirmToken,
+  onOpenApp,
+}: AppContentProps) {
+  switch (appId) {
+    case "about":
+      return <AboutApp suspended={suspended || hidden} />
+    case "projects":
+      return <ProjectsApp onOpenApp={onOpenApp} />
+    case "resume":
+      return <ResumeApp />
+    case "finder":
+      return (
+        <FinderApp
+          onOpenApp={onOpenApp}
+          openTrashToken={focused ? finderTrashOpenToken : 0}
+          confirmTrashToken={focused ? finderTrashConfirmToken : 0}
+        />
+      )
+    case "terminal":
+      return <TerminalApp onOpenApp={onOpenApp} />
+    case "scheduler":
+      return <SchedulerApp />
+    case "ats":
+      return <AtsApp />
+    case "sensor":
+      return <SensorApp suspended={suspended || hidden} />
+    case "segment":
+      return <SegmentApp />
+    case "paint":
+      return <PaintApp />
+  }
+})
+
+function PeterOSComponent({
   mode = "embedded",
   suspended = false,
   onExpand,
@@ -104,6 +191,9 @@ export function PeterOS({
   const [finderTrashConfirmToken, setFinderTrashConfirmToken] = useState(0)
   const [selectedDesktopApp, setSelectedDesktopApp] = useState<AppId | null>(null)
   const [desktopMenu, setDesktopMenu] = useState<DesktopMenuState>(null)
+  const windowsRef = useRef(windows)
+  const focusedIdRef = useRef<string | null>(null)
+  windowsRef.current = windows
 
   useEffect(() => {
     if (!desktopMenu) return
@@ -222,6 +312,8 @@ export function PeterOS({
   }, [bounds.h, bounds.w])
 
   const focus = useCallback((id: string) => {
+    if (focusedIdRef.current === id) return
+    focusedIdRef.current = id
     setZTop((z) => {
       const next = z + 1
       setWindows((ws) => {
@@ -437,7 +529,8 @@ export function PeterOS({
   }, [])
 
   const close = useCallback((id: string) => {
-    const appId = windows.find((window) => window.id === id)?.appId
+    const appId = windowsRef.current.find((window) => window.id === id)?.appId
+    if (focusedIdRef.current === id) focusedIdRef.current = null
     setWindows((ws) =>
       ws.map((window) =>
         window.id === id
@@ -446,7 +539,7 @@ export function PeterOS({
       ),
     )
     focusDockApp(appId)
-  }, [focusDockApp, windows])
+  }, [focusDockApp])
 
   const quitApp = useCallback((appId: AppId) => {
     setWindows((ws) => ws.filter((window) => window.appId !== appId))
@@ -460,14 +553,15 @@ export function PeterOS({
   }, [focusDockApp])
 
   const minimize = useCallback((id: string) => {
-    const appId = windows.find((window) => window.id === id)?.appId
+    const appId = windowsRef.current.find((window) => window.id === id)?.appId
+    if (focusedIdRef.current === id) focusedIdRef.current = null
     setWindows((ws) =>
       ws.map((w) =>
         w.id === id ? { ...w, minimized: true, closed: false } : w,
       ),
     )
     focusDockApp(appId)
-  }, [focusDockApp, windows])
+  }, [focusDockApp])
 
   const maximize = useCallback((id: string) => {
     setWindows((ws) =>
@@ -491,6 +585,7 @@ export function PeterOS({
       .sort((a, b) => b.z - a.z)[0]
     return top?.id ?? null
   }, [windows])
+  focusedIdRef.current = focusedId
 
   const focusedAppId = useMemo(
     () => windows.find((window) => window.id === focusedId)?.appId ?? null,
@@ -534,37 +629,6 @@ export function PeterOS({
     openApp("finder")
   }, [openApp])
 
-  const renderApp = (win: WindowState, hidden: boolean) => {
-    switch (win.appId) {
-      case "about":
-        return <AboutApp suspended={suspended || hidden} />
-      case "projects":
-        return <ProjectsApp onOpenApp={openApp} />
-      case "resume":
-        return <ResumeApp />
-      case "finder":
-        return (
-          <FinderApp
-            onOpenApp={openApp}
-            openTrashToken={win.id === focusedId ? finderTrashOpenToken : 0}
-            confirmTrashToken={win.id === focusedId ? finderTrashConfirmToken : 0}
-          />
-        )
-      case "terminal":
-        return <TerminalApp onOpenApp={openApp} />
-      case "scheduler":
-        return <SchedulerApp />
-      case "ats":
-        return <AtsApp />
-      case "sensor":
-        return <SensorApp suspended={suspended || hidden} />
-      case "segment":
-        return <SegmentApp />
-      case "paint":
-        return <PaintApp />
-    }
-  }
-
   const shellClass = useMemo(() => {
     const base =
       mode === "page"
@@ -581,14 +645,18 @@ export function PeterOS({
       : appMeta(focusedAppId).title
     : "Finder"
 
+  const openAppsSignature = [...new Set(
+    windows.filter((window) => !window.closed).map((window) => window.appId),
+  )]
+    .sort()
+    .join("|")
   const openApps = useMemo(
-    () =>
-      new Set(
-        windows
-          .filter((window) => !window.closed)
-          .map((window) => window.appId),
-      ),
-    [windows],
+    () => new Set<AppId>(openAppsSignature ? (openAppsSignature.split("|") as AppId[]) : []),
+    [openAppsSignature],
+  )
+  const windowBounds = useMemo(
+    () => ({ width: bounds.w, height: bounds.h }),
+    [bounds.h, bounds.w],
   )
 
   const isAppOpen = useCallback(
@@ -883,10 +951,18 @@ export function PeterOS({
                   onMaximize={maximize}
                   onMove={move}
                   onResize={resize}
-                  bounds={{ width: bounds.w, height: bounds.h }}
+                  bounds={windowBounds}
                   hidden={win.minimized || win.closed}
                 >
-                  {renderApp(win, win.minimized || win.closed)}
+                  <AppContent
+                    appId={win.appId}
+                    focused={win.id === focusedId}
+                    hidden={win.minimized || win.closed}
+                    suspended={suspended}
+                    finderTrashOpenToken={finderTrashOpenToken}
+                    finderTrashConfirmToken={finderTrashConfirmToken}
+                    onOpenApp={openApp}
+                  />
                 </WindowFrame>
               ))}
           </AnimatePresence>
@@ -908,3 +984,5 @@ export function PeterOS({
     </PeterOSContext.Provider>
   )
 }
+
+export const PeterOS = memo(PeterOSComponent)

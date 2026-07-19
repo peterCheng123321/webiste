@@ -9,6 +9,31 @@ import {
 
 const W = 400
 const H = 120
+const FRAME_MS = 1000 / 60
+
+type Telemetry = {
+  mag: number
+  label: "idle" | "motion" | "active"
+  peak: number
+  samples: number
+}
+
+function pushSample(buffer: number[], value: number) {
+  buffer.push(Math.max(4, Math.min(H - 4, value + (Math.random() - 0.5) * 1.5)))
+  if (buffer.length > W) buffer.shift()
+}
+
+function strokeSignal(
+  ctx: CanvasRenderingContext2D,
+  buffer: number[],
+  color: string,
+) {
+  ctx.strokeStyle = color
+  ctx.lineWidth = 1.6
+  ctx.beginPath()
+  buffer.forEach((y, x) => (x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)))
+  ctx.stroke()
+}
 
 type Props = {
   suspended?: boolean
@@ -22,10 +47,12 @@ export function SensorApp({ suspended = false }: Props) {
   const target = useRef({ x: H / 2, y: H / 2, z: H / 2 })
   const [mode, setMode] = useState<"mouse" | "motion">("mouse")
   const [running, setRunning] = useState(true)
-  const [mag, setMag] = useState(0)
-  const [label, setLabel] = useState<"idle" | "motion" | "active">("idle")
-  const [peak, setPeak] = useState(0)
-  const [samples, setSamples] = useState(0)
+  const [telemetry, setTelemetry] = useState<Telemetry>({
+    mag: 0,
+    label: "idle",
+    peak: 0,
+    samples: 0,
+  })
   const [deviceStatus, setDeviceStatus] = useState<
     "idle" | "requesting" | "live" | "denied" | "unavailable"
   >("idle")
@@ -39,17 +66,19 @@ export function SensorApp({ suspended = false }: Props) {
     const ctx = canvas.getContext("2d")
     if (!ctx) return
     let raf = 0
+    let lastFrame = 0
     let lastPublish = 0
 
-    const draw = () => {
-      const t = target.current
-      const push = (buf: number[], v: number) => {
-        buf.push(Math.max(4, Math.min(H - 4, v + (Math.random() - 0.5) * 1.5)))
-        if (buf.length > W) buf.shift()
+    const draw = (now: number) => {
+      if (now - lastFrame < FRAME_MS * 0.85) {
+        raf = requestAnimationFrame(draw)
+        return
       }
-      push(bufX.current, t.x)
-      push(bufY.current, t.y)
-      push(bufZ.current, t.z)
+      lastFrame = now
+      const t = target.current
+      pushSample(bufX.current, t.x)
+      pushSample(bufY.current, t.y)
+      pushSample(bufZ.current, t.z)
 
       ctx.fillStyle = "#0b0f14"
       ctx.fillRect(0, 0, W, H)
@@ -61,16 +90,9 @@ export function SensorApp({ suspended = false }: Props) {
       }
       ctx.stroke()
 
-      const stroke = (buf: number[], color: string) => {
-        ctx.strokeStyle = color
-        ctx.lineWidth = 1.6
-        ctx.beginPath()
-        buf.forEach((y, x) => (x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)))
-        ctx.stroke()
-      }
-      stroke(bufX.current, "#ff6b6b")
-      stroke(bufY.current, "#4ecdc4")
-      stroke(bufZ.current, "#ffe66d")
+      strokeSignal(ctx, bufX.current, "#ff6b6b")
+      strokeSignal(ctx, bufY.current, "#4ecdc4")
+      strokeSignal(ctx, bufZ.current, "#ffe66d")
 
       const last =
         Math.abs((bufX.current.at(-1) ?? H / 2) - H / 2) +
@@ -79,13 +101,14 @@ export function SensorApp({ suspended = false }: Props) {
       const m = Math.min(100, Math.round((last / (H * 1.2)) * 100))
       peakRef.current = Math.max(peakRef.current * 0.995, m)
       sampleCountRef.current++
-      const now = performance.now()
       if (now - lastPublish >= 100) {
         lastPublish = now
-        setMag(m)
-        setPeak(Math.round(peakRef.current))
-        setSamples(sampleCountRef.current)
-        setLabel(m > 55 ? "active" : m > 22 ? "motion" : "idle")
+        setTelemetry({
+          mag: m,
+          peak: Math.round(peakRef.current),
+          samples: sampleCountRef.current,
+          label: m > 55 ? "active" : m > 22 ? "motion" : "idle",
+        })
       }
 
       raf = requestAnimationFrame(draw)
@@ -142,7 +165,7 @@ export function SensorApp({ suspended = false }: Props) {
 
   const resetPeak = () => {
     peakRef.current = 0
-    setPeak(0)
+    setTelemetry((current) => ({ ...current, peak: 0 }))
   }
 
   const updatePointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -165,6 +188,7 @@ export function SensorApp({ suspended = false }: Props) {
         : mode === "motion"
           ? "Device motion connected"
           : "Move the pointer over the scope"
+  const { mag, label, peak, samples } = telemetry
 
   return (
     <div className="mac-app sensor-app">

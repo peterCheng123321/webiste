@@ -81,7 +81,7 @@ export const defaultData: WebsiteData = {
     location: "Shanghai",
     email: "chengzhongquan0630@gmail.com",
     phone: "+1 (315) 317-5618",
-    photo: "/IMG_0782 2.JPG",
+    photo: "/assets/peteros/avatar.webp",
     linkedin: "https://www.linkedin.com/in/zhongquan-cheng/",
     github: "https://github.com/petercheng123321",
   },

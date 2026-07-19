@@ -31,12 +31,22 @@ export function ShanghaiDayProgress() {
     let timeout = 0
 
     const update = () => {
+      if (document.hidden) return
       setReading(getDayReading())
       timeout = window.setTimeout(update, 1_000 - (Date.now() % 1_000))
     }
 
+    const onVisibilityChange = () => {
+      window.clearTimeout(timeout)
+      if (!document.hidden) update()
+    }
+
     update()
-    return () => window.clearTimeout(timeout)
+    document.addEventListener("visibilitychange", onVisibilityChange)
+    return () => {
+      window.clearTimeout(timeout)
+      document.removeEventListener("visibilitychange", onVisibilityChange)
+    }
   }, [])
 
   const progress = reading?.percent ?? 0

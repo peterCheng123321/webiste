@@ -62,6 +62,17 @@ export function WindowFrame({
 }: Props) {
   const frameRef = useRef<HTMLDivElement>(null)
   const wasHiddenRef = useRef(true)
+  const onMoveRef = useRef(onMove)
+  const onResizeRef = useRef(onResize)
+  const moveFrameRef = useRef(0)
+  const resizeFrameRef = useRef(0)
+  const pendingMoveRef = useRef<{ id: string; x: number; y: number } | null>(null)
+  const pendingResizeRef = useRef<{
+    id: string
+    geometry: WindowGeometry
+  } | null>(null)
+  onMoveRef.current = onMove
+  onResizeRef.current = onResize
   const dragRef = useRef<{
     ox: number
     oy: number
@@ -77,6 +88,28 @@ export function WindowFrame({
   const [dragging, setDragging] = useState(false)
   const [resizing, setResizing] = useState<WindowResizeDirection | null>(null)
   const reduceMotion = useReducedMotion() === true
+
+  const flushMove = useCallback(() => {
+    moveFrameRef.current = 0
+    const pending = pendingMoveRef.current
+    pendingMoveRef.current = null
+    if (pending) onMoveRef.current(pending.id, pending.x, pending.y)
+  }, [])
+
+  const flushResize = useCallback(() => {
+    resizeFrameRef.current = 0
+    const pending = pendingResizeRef.current
+    pendingResizeRef.current = null
+    if (pending) onResizeRef.current(pending.id, pending.geometry)
+  }, [])
+
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(moveFrameRef.current)
+      cancelAnimationFrame(resizeFrameRef.current)
+    },
+    [],
+  )
 
   useEffect(() => {
     const becameVisible = wasHiddenRef.current && !hidden
@@ -97,6 +130,7 @@ export function WindowFrame({
     (e: ReactPointerEvent) => {
       if (win.maximized) return
       if ((e.target as HTMLElement).closest("button")) return
+      e.stopPropagation()
       onFocus(win.id)
       dragRef.current = {
         ox: e.clientX,
@@ -122,12 +156,19 @@ export function WindowFrame({
       } else {
         ny = Math.max(0, ny)
       }
-      onMove(win.id, nx, ny)
+      pendingMoveRef.current = { id: win.id, x: nx, y: ny }
+      if (!moveFrameRef.current) {
+        moveFrameRef.current = requestAnimationFrame(flushMove)
+      }
     },
-    [bounds, onMove, win.id, win.width]
+    [bounds, flushMove, win.id, win.width]
   )
 
   const onPointerUp = useCallback((e: ReactPointerEvent) => {
+    if (moveFrameRef.current) {
+      cancelAnimationFrame(moveFrameRef.current)
+      flushMove()
+    }
     dragRef.current = null
     setDragging(false)
     try {
@@ -135,7 +176,7 @@ export function WindowFrame({
     } catch {
       /* already released */
     }
-  }, [])
+  }, [flushMove])
 
   const onPointerDownResize = useCallback(
     (e: ReactPointerEvent, direction: WindowResizeDirection) => {
@@ -229,12 +270,22 @@ export function WindowFrame({
         y = clamp(y, 0, boundHeight - height)
       }
 
-      onResize(win.id, { x, y, width, height })
+      pendingResizeRef.current = {
+        id: win.id,
+        geometry: { x, y, width, height },
+      }
+      if (!resizeFrameRef.current) {
+        resizeFrameRef.current = requestAnimationFrame(flushResize)
+      }
     },
-    [bounds, onResize, win.id]
+    [bounds, flushResize, win.id]
   )
 
   const onPointerUpResize = useCallback((e: ReactPointerEvent) => {
+    if (resizeFrameRef.current) {
+      cancelAnimationFrame(resizeFrameRef.current)
+      flushResize()
+    }
     resizeRef.current = null
     setResizing(null)
     try {
@@ -242,7 +293,7 @@ export function WindowFrame({
     } catch {
       /* already released */
     }
-  }, [])
+  }, [flushResize])
 
   const layout = win.maximized
     ? {
@@ -290,7 +341,7 @@ export function WindowFrame({
       }}
       exit={reduceMotion ? undefined : { opacity: 0, scale: 0.92, y: 12 }}
       transition={
-        dragging || resizing || reduceMotion
+        dragging || resizing || reduceMotion || hidden
           ? { duration: 0 }
           : {
               type: "spring",

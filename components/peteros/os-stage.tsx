@@ -7,7 +7,17 @@ import {
   useState,
   type PointerEvent as RE,
 } from "react"
-import { PeterOS } from "./peter-os"
+import dynamic from "next/dynamic"
+
+const loadPeterOS = () => import("./peter-os").then((module) => module.PeterOS)
+const LazyPeterOS = dynamic(loadPeterOS, {
+  ssr: false,
+  loading: () => (
+    <div className="pos-shell pos-shell-fullscreen pos-shell-loading" aria-hidden>
+      <div className="pos-wallpaper" />
+    </div>
+  ),
+})
 
 type Props = {
   defaultExpanded?: boolean
@@ -149,6 +159,7 @@ export function OsStage({ defaultExpanded = false }: Props) {
   // Control point = the grabbed corner's current position.
   const P = useRef<Pt>(defaultExpanded ? openPoint() : restPoint())
   const rafRef = useRef(0)
+  const renderRafRef = useRef(0)
   const hasOpenedRef = useRef(defaultExpanded)
   const openRef = useRef(open)
   openRef.current = open
@@ -163,6 +174,14 @@ export function OsStage({ defaultExpanded = false }: Props) {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
     rafRef.current = 0
   }, [])
+
+  const scheduleBump = useCallback(() => {
+    if (renderRafRef.current) return
+    renderRafRef.current = requestAnimationFrame(() => {
+      renderRafRef.current = 0
+      bump()
+    })
+  }, [bump])
 
   const animateTo = useCallback(
     (to: Pt, dur: number, ease: (t: number) => number, onDone?: () => void) => {
@@ -191,6 +210,7 @@ export function OsStage({ defaultExpanded = false }: Props) {
     window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
 
   const openOS = useCallback(() => {
+    void loadPeterOS()
     setBooted(true)
     setActive(true)
     setDragging(false)
@@ -252,6 +272,14 @@ export function OsStage({ defaultExpanded = false }: Props) {
     }
   }, [open, closeOS])
 
+  useEffect(() => {
+    if (open) document.documentElement.dataset.peterosOpen = "true"
+    else delete document.documentElement.dataset.peterosOpen
+    return () => {
+      delete document.documentElement.dataset.peterosOpen
+    }
+  }, [open])
+
   // Keep the idle dog-ear anchored to the corner across resizes
   useEffect(() => {
     const onResize = () => {
@@ -273,7 +301,13 @@ export function OsStage({ defaultExpanded = false }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(() => stopAnim, [stopAnim])
+  useEffect(
+    () => () => {
+      stopAnim()
+      cancelAnimationFrame(renderRafRef.current)
+    },
+    [stopAnim],
+  )
 
   /* ── pointer / drag ──────────────────────────────────── */
   const onPointerDown = (e: RE) => {
@@ -281,6 +315,7 @@ export function OsStage({ defaultExpanded = false }: Props) {
     if (e.button !== 0 && e.pointerType === "mouse") return
     e.preventDefault()
     e.stopPropagation()
+    void loadPeterOS()
     stopAnim()
     setBooted(true)
     setActive(true)
@@ -303,7 +338,7 @@ export function OsStage({ defaultExpanded = false }: Props) {
       x: clamp(e.clientX, -0.25 * vw(), vw()),
       y: clamp(e.clientY, 0, 1.25 * vh()),
     }
-    bump()
+    scheduleBump()
   }
 
   const finish = (e: RE) => {
@@ -344,6 +379,7 @@ export function OsStage({ defaultExpanded = false }: Props) {
 
   const onEnter = () => {
     if (openRef.current) return
+    void loadPeterOS()
     setHover(true)
     if (!drag.current && !activeRef.current && !rafRef.current) {
       if (reducedMotion()) {
@@ -411,7 +447,7 @@ export function OsStage({ defaultExpanded = false }: Props) {
           aria-modal={open || undefined}
           aria-label={open ? "PeterOS" : undefined}
         >
-          <PeterOS
+          <LazyPeterOS
             mode="fullscreen"
             suspended={!open && !active}
             onCloseExpand={open ? closeOS : undefined}
