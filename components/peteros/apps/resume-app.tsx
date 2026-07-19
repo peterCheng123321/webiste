@@ -68,7 +68,7 @@ export function ResumeApp() {
           <span>resume.pdf</span>
           <span className="resume-viewer-hint">scroll · zoom with browser controls</span>
         </div>
-        <iframe src="/resume.pdf#view=FitH" title="Resume PDF" className="resume-iframe" />
+        <iframe src="/resume.pdf#view=FitH" title="Résumé PDF" className="resume-iframe" />
       </div>
     </div>
   )

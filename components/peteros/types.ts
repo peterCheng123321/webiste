@@ -23,25 +23,41 @@ export type WindowState = {
   maximized: boolean
 }
 
+export type WindowGeometry = Pick<
+  WindowState,
+  "x" | "y" | "width" | "height"
+>
+
+export type WindowResizeDirection =
+  | "n"
+  | "s"
+  | "e"
+  | "w"
+  | "ne"
+  | "nw"
+  | "se"
+  | "sw"
+
+export const MIN_WINDOW_WIDTH = 240
+export const MIN_WINDOW_HEIGHT = 150
+
 export type AppMeta = {
   id: AppId
   title: string
-  icon: string
   defaultWidth: number
   defaultHeight: number
   kind: "system" | "toy"
 }
 
 export const APPS: AppMeta[] = [
-  { id: "about", title: "About", icon: "👤", defaultWidth: 560, defaultHeight: 520, kind: "system" },
-  { id: "projects", title: "Projects", icon: "🛠", defaultWidth: 620, defaultHeight: 440, kind: "system" },
-  { id: "resume", title: "Resume", icon: "📄", defaultWidth: 680, defaultHeight: 500, kind: "system" },
-  { id: "finder", title: "Finder", icon: "📁", defaultWidth: 640, defaultHeight: 420, kind: "system" },
-  { id: "terminal", title: "Terminal", icon: "⬛", defaultWidth: 520, defaultHeight: 320, kind: "system" },
+  { id: "about", title: "About", defaultWidth: 720, defaultHeight: 540, kind: "system" },
+  { id: "projects", title: "Projects", defaultWidth: 620, defaultHeight: 440, kind: "system" },
+  { id: "resume", title: "Résumé", defaultWidth: 680, defaultHeight: 500, kind: "system" },
+  { id: "finder", title: "Finder", defaultWidth: 640, defaultHeight: 420, kind: "system" },
+  { id: "terminal", title: "Terminal", defaultWidth: 520, defaultHeight: 320, kind: "system" },
   {
     id: "scheduler",
     title: "Scheduler",
-    icon: "📅",
     defaultWidth: 640,
     defaultHeight: 440,
     kind: "toy",
@@ -49,7 +65,6 @@ export const APPS: AppMeta[] = [
   {
     id: "ats",
     title: "ATS Lab",
-    icon: "📨",
     defaultWidth: 560,
     defaultHeight: 440,
     kind: "toy",
@@ -57,7 +72,6 @@ export const APPS: AppMeta[] = [
   {
     id: "sensor",
     title: "IMU Lab",
-    icon: "📡",
     defaultWidth: 520,
     defaultHeight: 400,
     kind: "toy",
@@ -65,7 +79,6 @@ export const APPS: AppMeta[] = [
   {
     id: "segment",
     title: "Segment",
-    icon: "🩺",
     defaultWidth: 560,
     defaultHeight: 420,
     kind: "toy",
@@ -73,7 +86,6 @@ export const APPS: AppMeta[] = [
   {
     id: "paint",
     title: "Paint",
-    icon: "🎨",
     defaultWidth: 560,
     defaultHeight: 400,
     kind: "toy",

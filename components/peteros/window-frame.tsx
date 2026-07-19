@@ -7,8 +7,29 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react"
-import { motion, AnimatePresence, useReducedMotion } from "motion/react"
-import type { WindowState } from "./types"
+import { motion, useReducedMotion } from "motion/react"
+import {
+  MIN_WINDOW_HEIGHT,
+  MIN_WINDOW_WIDTH,
+  type WindowGeometry,
+  type WindowResizeDirection,
+  type WindowState,
+} from "./types"
+
+const RESIZE_DIRECTIONS: WindowResizeDirection[] = [
+  "n",
+  "s",
+  "e",
+  "w",
+  "ne",
+  "nw",
+  "se",
+  "sw",
+]
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(value, max))
+}
 
 type Props = {
   win: WindowState
@@ -19,6 +40,7 @@ type Props = {
   onMinimize: (id: string) => void
   onMaximize: (id: string) => void
   onMove: (id: string, x: number, y: number) => void
+  onResize: (id: string, geometry: WindowGeometry) => void
   bounds?: { width: number; height: number }
 }
 
@@ -31,6 +53,7 @@ export function WindowFrame({
   onMinimize,
   onMaximize,
   onMove,
+  onResize,
   bounds,
 }: Props) {
   const dragRef = useRef<{
@@ -39,7 +62,14 @@ export function WindowFrame({
     sx: number
     sy: number
   } | null>(null)
+  const resizeRef = useRef<{
+    direction: WindowResizeDirection
+    pointerX: number
+    pointerY: number
+    geometry: WindowGeometry
+  } | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [resizing, setResizing] = useState<WindowResizeDirection | null>(null)
   const reduceMotion = useReducedMotion() === true
 
   const onPointerDownTitle = useCallback(
@@ -67,9 +97,9 @@ export function WindowFrame({
       let ny = d.sy + (e.clientY - d.oy)
       if (bounds) {
         nx = Math.max(-win.width + 80, Math.min(nx, bounds.width - 80))
-        ny = Math.max(24, Math.min(ny, bounds.height - 40))
+        ny = Math.max(0, Math.min(ny, bounds.height - 40))
       } else {
-        ny = Math.max(24, ny)
+        ny = Math.max(0, ny)
       }
       onMove(win.id, nx, ny)
     },
@@ -86,14 +116,112 @@ export function WindowFrame({
     }
   }, [])
 
-  if (win.minimized) return null
+  const onPointerDownResize = useCallback(
+    (e: ReactPointerEvent, direction: WindowResizeDirection) => {
+      if (win.maximized) return
+      e.preventDefault()
+      e.stopPropagation()
+      onFocus(win.id)
+      resizeRef.current = {
+        direction,
+        pointerX: e.clientX,
+        pointerY: e.clientY,
+        geometry: {
+          x: win.x,
+          y: win.y,
+          width: win.width,
+          height: win.height,
+        },
+      }
+      setResizing(direction)
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    },
+    [onFocus, win.height, win.id, win.maximized, win.width, win.x, win.y]
+  )
+
+  const onPointerMoveResize = useCallback(
+    (e: ReactPointerEvent) => {
+      const active = resizeRef.current
+      if (!active) return
+      e.preventDefault()
+
+      const dx = e.clientX - active.pointerX
+      const dy = e.clientY - active.pointerY
+      const start = active.geometry
+      const direction = active.direction
+      const hasEast = direction.includes("e")
+      const hasWest = direction.includes("w")
+      const hasNorth = direction.includes("n")
+      const hasSouth = direction.includes("s")
+
+      const boundWidth = bounds?.width ?? Number.POSITIVE_INFINITY
+      const boundHeight = bounds?.height ?? Number.POSITIVE_INFINITY
+      const minWidth = Math.min(MIN_WINDOW_WIDTH, boundWidth)
+      const minHeight = Math.min(MIN_WINDOW_HEIGHT, boundHeight)
+
+      let x = start.x
+      let y = start.y
+      let width = start.width
+      let height = start.height
+
+      if (hasEast) {
+        if (bounds) {
+          x = clamp(x, 0, Math.max(0, boundWidth - minWidth))
+        }
+        width = clamp(start.width + dx, minWidth, boundWidth - x)
+      } else if (hasWest) {
+        const right = bounds
+          ? clamp(start.x + start.width, minWidth, boundWidth)
+          : start.x + start.width
+        x = clamp(
+          start.x + dx,
+          bounds ? 0 : Number.NEGATIVE_INFINITY,
+          right - minWidth
+        )
+        width = right - x
+      }
+
+      if (hasSouth) {
+        if (bounds) {
+          y = clamp(y, 0, Math.max(0, boundHeight - minHeight))
+        }
+        height = clamp(start.height + dy, minHeight, boundHeight - y)
+      } else if (hasNorth) {
+        const bottom = bounds
+          ? clamp(start.y + start.height, minHeight, boundHeight)
+          : start.y + start.height
+        y = clamp(start.y + dy, 0, bottom - minHeight)
+        height = bottom - y
+      }
+
+      if (bounds) {
+        width = clamp(width, minWidth, boundWidth)
+        height = clamp(height, minHeight, boundHeight)
+        x = clamp(x, 0, boundWidth - width)
+        y = clamp(y, 0, boundHeight - height)
+      }
+
+      onResize(win.id, { x, y, width, height })
+    },
+    [bounds, onResize, win.id]
+  )
+
+  const onPointerUpResize = useCallback((e: ReactPointerEvent) => {
+    resizeRef.current = null
+    setResizing(null)
+    try {
+      ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+    } catch {
+      /* already released */
+    }
+  }, [])
 
   const layout = win.maximized
     ? {
         left: 0,
-        top: 28,
+        top: 0,
         width: "100%" as const,
-        height: "calc(100% - 28px - 80px)",
+        height: "calc(100% - 72px)",
       }
     : {
         left: win.x,
@@ -103,100 +231,117 @@ export function WindowFrame({
       }
 
   return (
-    <AnimatePresence>
-      <motion.div
-        key={win.id}
-        className={[
-          "pos-window",
-          focused ? "focused" : "",
-          dragging ? "dragging" : "",
-          win.maximized ? "maximized" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-        style={{
-          zIndex: win.z,
-          position: "absolute",
-        }}
-        initial={reduceMotion ? false : { opacity: 0, scale: 0.9, y: 16 }}
-        animate={{
-          opacity: 1,
-          scale: 1,
-          y: 0,
-          left: layout.left,
-          top: layout.top,
-          width: layout.width,
-          height: layout.height,
-        }}
-        exit={reduceMotion ? undefined : { opacity: 0, scale: 0.92, y: 12 }}
-        transition={
-          dragging || reduceMotion
-            ? { duration: 0 }
-            : {
-                type: "spring",
-                stiffness: 420,
-                damping: 32,
-                mass: 0.85,
-              }
-        }
-        onPointerDown={() => onFocus(win.id)}
-        onFocusCapture={() => {
-          if (!focused) onFocus(win.id)
-        }}
-        role="dialog"
-        aria-label={win.title}
-        data-focused={focused ? "true" : "false"}
+    <motion.div
+      key={win.id}
+      className={[
+        "pos-window",
+        focused ? "focused" : "",
+        dragging ? "dragging" : "",
+        resizing ? "resizing" : "",
+        win.maximized ? "maximized" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      style={{
+        zIndex: win.z,
+        position: "absolute",
+      }}
+      initial={reduceMotion ? false : { opacity: 0, scale: 0.9, y: 16 }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        left: layout.left,
+        top: layout.top,
+        width: layout.width,
+        height: layout.height,
+      }}
+      exit={reduceMotion ? undefined : { opacity: 0, scale: 0.92, y: 12 }}
+      transition={
+        dragging || resizing || reduceMotion
+          ? { duration: 0 }
+          : {
+              type: "spring",
+              stiffness: 420,
+              damping: 32,
+              mass: 0.85,
+            }
+      }
+      onPointerDown={() => onFocus(win.id)}
+      onFocusCapture={() => {
+        if (!focused) onFocus(win.id)
+      }}
+      role="dialog"
+      aria-label={win.title}
+      data-focused={focused ? "true" : "false"}
+      data-app-id={win.appId}
+      data-resize-direction={resizing ?? undefined}
+    >
+      <div
+        className="pos-titlebar"
+        onPointerDown={onPointerDownTitle}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onDoubleClick={() => onMaximize(win.id)}
       >
         <div
-          className="pos-titlebar"
-          onPointerDown={onPointerDownTitle}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onDoubleClick={() => onMaximize(win.id)}
+          className="pos-traffic"
+          onDoubleClick={(event) => event.stopPropagation()}
         >
-          <div
-            className="pos-traffic"
-            onDoubleClick={(event) => event.stopPropagation()}
+          <button
+            type="button"
+            className="pos-dot pos-dot-close"
+            aria-label="Close"
+            onClick={(e) => {
+              e.stopPropagation()
+              onClose(win.id)
+            }}
           >
-            <button
-              type="button"
-              className="pos-dot pos-dot-close"
-              aria-label="Close"
-              onClick={(e) => {
-                e.stopPropagation()
-                onClose(win.id)
-              }}
-            >
-              <span className="pos-dot-glyph">×</span>
-            </button>
-            <button
-              type="button"
-              className="pos-dot pos-dot-min"
-              aria-label="Minimize"
-              onClick={(e) => {
-                e.stopPropagation()
-                onMinimize(win.id)
-              }}
-            >
-              <span className="pos-dot-glyph">−</span>
-            </button>
-            <button
-              type="button"
-              className="pos-dot pos-dot-max"
-              aria-label="Maximize"
-              onClick={(e) => {
-                e.stopPropagation()
-                onMaximize(win.id)
-              }}
-            >
-              <span className="pos-dot-glyph">+</span>
-            </button>
-          </div>
-          <span className="pos-title">{win.title}</span>
-          <span className="pos-titlebar-spacer" />
+            <span className="pos-dot-glyph">×</span>
+          </button>
+          <button
+            type="button"
+            className="pos-dot pos-dot-min"
+            aria-label="Minimize"
+            onClick={(e) => {
+              e.stopPropagation()
+              onMinimize(win.id)
+            }}
+          >
+            <span className="pos-dot-glyph">−</span>
+          </button>
+          <button
+            type="button"
+            className="pos-dot pos-dot-max"
+            aria-label="Maximize"
+            onClick={(e) => {
+              e.stopPropagation()
+              onMaximize(win.id)
+            }}
+          >
+            <span className="pos-dot-glyph">+</span>
+          </button>
         </div>
-        <div className="pos-window-body">{children}</div>
-      </motion.div>
-    </AnimatePresence>
+        <span className="pos-title">{win.title}</span>
+        <span className="pos-titlebar-spacer" />
+      </div>
+      <div className="pos-window-body">{children}</div>
+      {!win.maximized &&
+        RESIZE_DIRECTIONS.map((direction) => (
+          <span
+            key={direction}
+            className={`pos-window-resize pos-window-resize-${direction}`}
+            aria-hidden="true"
+            onPointerDown={(event) => onPointerDownResize(event, direction)}
+            onPointerMove={onPointerMoveResize}
+            onPointerUp={onPointerUpResize}
+            onPointerCancel={onPointerUpResize}
+            onLostPointerCapture={() => {
+              resizeRef.current = null
+              setResizing(null)
+            }}
+          />
+        ))}
+    </motion.div>
   )
 }

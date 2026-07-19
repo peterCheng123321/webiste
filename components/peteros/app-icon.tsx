@@ -1,10 +1,8 @@
 "use client"
 
 /**
- * Classic Mac OS 9 artwork. Application icons stay visually stable; only
- * semantic objects such as folders and Trash switch between closed/open art.
- *
- * Pack: bearz314/MacOS9-icons (MIT) → /public/icons/macos9/
+ * PeterOS artwork. Every icon has an idle and an active state so the desktop
+ * can communicate application state without layering on generic badges.
  */
 
 import type { AppId } from "./types"
@@ -17,7 +15,7 @@ type Props = {
   size?: number
   className?: string
   appearance?: IconAppearance
-  /** Semantic object state. Only folder and Trash use alternate artwork. */
+  /** Open folder, full Trash, or running application state. */
   open?: boolean
 }
 
@@ -27,63 +25,63 @@ type Props = {
  */
 const PAIR: Record<IconId, { closed: string; open: string; openMeans: string }> = {
   about: {
-    closed: "/icons/macos9/about-closed.png",
-    open: "/icons/macos9/about-open.png",
+    closed: "/icons/peteros/about-closed.png",
+    open: "/icons/peteros/about-open.png",
     openMeans: "profile open",
   },
   projects: {
-    closed: "/icons/macos9/projects-closed.png",
-    open: "/icons/macos9/projects-open.png",
+    closed: "/icons/peteros/projects-closed.png",
+    open: "/icons/peteros/projects-open.png",
     openMeans: "toolbox open",
   },
   resume: {
-    closed: "/icons/macos9/resume-closed.png",
-    open: "/icons/macos9/resume-open.png",
+    closed: "/icons/peteros/resume-closed.png",
+    open: "/icons/peteros/resume-open.png",
     openMeans: "document open",
   },
   finder: {
-    closed: "/icons/macos9/finder-closed.png",
-    open: "/icons/macos9/finder-open.png",
+    closed: "/icons/peteros/finder-closed.png",
+    open: "/icons/peteros/finder-open.png",
     openMeans: "folder window open",
   },
   terminal: {
-    closed: "/icons/macos9/terminal-closed.png",
-    open: "/icons/macos9/terminal-open.png",
+    closed: "/icons/peteros/terminal-closed.png",
+    open: "/icons/peteros/terminal-open.png",
     openMeans: "session active",
   },
   scheduler: {
-    closed: "/icons/macos9/scheduler-closed.png",
-    open: "/icons/macos9/scheduler-open.png",
+    closed: "/icons/peteros/scheduler-closed.png",
+    open: "/icons/peteros/scheduler-open.png",
     openMeans: "day sheet open",
   },
   ats: {
-    closed: "/icons/macos9/ats-closed.png",
-    open: "/icons/macos9/ats-open.png",
+    closed: "/icons/peteros/ats-closed.png",
+    open: "/icons/peteros/ats-open.png",
     openMeans: "mail open",
   },
   sensor: {
-    closed: "/icons/macos9/sensor-closed.png",
-    open: "/icons/macos9/sensor-open.png",
+    closed: "/icons/peteros/sensor-closed.png",
+    open: "/icons/peteros/sensor-open.png",
     openMeans: "network live",
   },
   segment: {
-    closed: "/icons/macos9/segment-closed.png",
-    open: "/icons/macos9/segment-open.png",
+    closed: "/icons/peteros/segment-closed.png",
+    open: "/icons/peteros/segment-open.png",
     openMeans: "gallery open",
   },
   paint: {
-    closed: "/icons/macos9/paint-closed.png",
-    open: "/icons/macos9/paint-open.png",
+    closed: "/icons/peteros/paint-closed.png",
+    open: "/icons/peteros/paint-open.png",
     openMeans: "drawing in progress",
   },
   trash: {
-    closed: "/icons/macos9/trash-closed.png",
-    open: "/icons/macos9/trash-open.png",
+    closed: "/icons/peteros/trash-closed.png",
+    open: "/icons/peteros/trash-open.png",
     openMeans: "trash full",
   },
   folder: {
-    closed: "/icons/macos9/folder-closed.png",
-    open: "/icons/macos9/folder-open.png",
+    closed: "/icons/peteros/folder-closed.png",
+    open: "/icons/peteros/folder-open.png",
     openMeans: "folder open",
   },
 }
@@ -95,8 +93,7 @@ export function AppIcon({
   open = false,
 }: Props) {
   const pair = PAIR[id]
-  const isStatefulObject = id === "folder" || id === "trash"
-  const shownOpen = isStatefulObject && open
+  const shownOpen = open
   const src = shownOpen ? pair.open : pair.closed
 
   return (

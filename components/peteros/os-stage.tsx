@@ -455,6 +455,11 @@ export function OsStage({ defaultExpanded = false }: Props) {
           onPointerCancel={finish}
           onMouseEnter={onEnter}
           onMouseLeave={onLeave}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return
+            event.preventDefault()
+            openOS()
+          }}
         >
           <span
             className="pos-peel-label"

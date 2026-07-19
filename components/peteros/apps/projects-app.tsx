@@ -1,6 +1,10 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import {
+  useMemo,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react"
 import { defaultData, type Project } from "@/lib/default-data"
 import { ProjectDiagram } from "@/components/project-diagram"
 
@@ -32,6 +36,31 @@ export function ProjectsApp({ onOpenApp }: Props) {
   const active: Project | undefined =
     list.find((p) => p.id === activeId) ?? list[0] ?? projects[0]
 
+  const onProjectKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    projectId: string,
+  ) => {
+    const options = Array.from(
+      event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+        '[role="option"]',
+      ) ?? [],
+    )
+    const current = options.indexOf(event.currentTarget)
+    if (current < 0) return
+
+    let next = current
+    if (event.key === "ArrowDown") next = Math.min(options.length - 1, current + 1)
+    else if (event.key === "ArrowUp") next = Math.max(0, current - 1)
+    else if (event.key === "Home") next = 0
+    else if (event.key === "End") next = options.length - 1
+    else return
+
+    event.preventDefault()
+    const option = options[next]
+    option?.focus()
+    setActiveId(option?.dataset.projectId ?? projectId)
+  }
+
   return (
     <div className="mac-app projects-app">
       <div className="mac-toolbar projects-filters">
@@ -40,6 +69,7 @@ export function ProjectsApp({ onOpenApp }: Props) {
             key={t}
             type="button"
             className={filter === t ? "mac-seg active" : "mac-seg"}
+            aria-pressed={filter === t}
             onClick={() => setFilter(t)}
           >
             {t === "all" ? "All" : t}
@@ -48,14 +78,18 @@ export function ProjectsApp({ onOpenApp }: Props) {
       </div>
 
       <div className="projects-split">
-        <div className="projects-list" role="list">
+        <div className="projects-list" role="listbox" aria-label="Projects">
           {list.map((p) => (
             <button
               key={p.id}
               type="button"
-              role="listitem"
+              role="option"
+              aria-selected={active?.id === p.id}
+              data-project-id={p.id}
+              tabIndex={active?.id === p.id ? 0 : -1}
               className={active?.id === p.id ? "projects-row active" : "projects-row"}
               onClick={() => setActiveId(p.id)}
+              onKeyDown={(event) => onProjectKeyDown(event, p.id)}
             >
               <div className="projects-thumb">
                 {p.diagram ? (

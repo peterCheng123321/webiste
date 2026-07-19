@@ -14,6 +14,7 @@ import {
   appMeta,
   isAppId,
   type AppId,
+  type WindowGeometry,
   type WindowState,
 } from "./types"
 import { WindowFrame } from "./window-frame"
@@ -31,6 +32,7 @@ import { AppIcon } from "./app-icon"
 import { Dock } from "./dock"
 import { MenuBar } from "./menu-bar"
 import { PeterOSContext, type IconAppearance } from "./context"
+import { AnimatePresence } from "motion/react"
 
 type Mode = "embedded" | "fullscreen" | "page"
 
@@ -41,11 +43,12 @@ type Props = {
   onCloseExpand?: () => void
 }
 
+type DesktopMenuState = { x: number; y: number } | null
+
 const APPEARANCE_KEY = "peteros-icon-appearance"
-const DESKTOP_APPS = [
-  ...SYSTEM_APPS.filter((app) => app.id !== "about"),
-  ...TOY_APPS.slice(0, 3),
-]
+// The Dock owns core applications; the desktop is the workbench for labs.
+// Keeping those roles distinct avoids presenting the same launcher twice.
+const DESKTOP_APPS = TOY_APPS
 
 function nextId() {
   return `w-${Math.random().toString(36).slice(2, 9)}`
@@ -82,14 +85,25 @@ export function PeterOS({
   onCloseExpand,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const desktopRef = useRef<HTMLDivElement>(null)
+  const contextMenuRef = useRef<HTMLDivElement>(null)
   const bootedRef = useRef(false)
   const [bounds, setBounds] = useState({ w: 0, h: 0 })
   const [windows, setWindows] = useState<WindowState[]>([])
+  const [running, setRunning] = useState<Set<AppId>>(() => new Set())
   const [zTop, setZTop] = useState(10)
   const [clock, setClock] = useState("")
   const [appearance, setAppearanceState] = useState<IconAppearance>("light")
   const [trashFull, setTrashFull] = useState(false)
   const [selectedDesktopApp, setSelectedDesktopApp] = useState<AppId | null>(null)
+  const [desktopMenu, setDesktopMenu] = useState<DesktopMenuState>(null)
+
+  useEffect(() => {
+    if (!desktopMenu) return
+    requestAnimationFrame(() => {
+      contextMenuRef.current?.querySelector<HTMLButtonElement>("button")?.focus()
+    })
+  }, [desktopMenu])
 
   useEffect(() => {
     setAppearanceState(readAppearance())
@@ -106,7 +120,7 @@ export function PeterOS({
 
   useEffect(() => {
     if (suspended) return
-    const el = rootRef.current
+    const el = desktopRef.current
     if (!el) return
     const ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect
@@ -131,7 +145,7 @@ export function PeterOS({
             hour: "numeric",
             minute: "2-digit",
           })
-          .replace(",", "")
+          .replaceAll(",", "")
       )
       timeout = window.setTimeout(tick, 60_050 - (Date.now() % 60_000))
     }
@@ -156,6 +170,7 @@ export function PeterOS({
         maximized: false,
       },
     ])
+    setRunning(new Set(["about"]))
   }, [bounds])
 
   useEffect(() => {
@@ -175,10 +190,7 @@ export function PeterOS({
           Math.max(16, win.x),
           Math.max(16, bounds.w - width - 16),
         )
-        const y = Math.min(
-          Math.max(32, win.y),
-          Math.max(32, bounds.h - height - 72),
-        )
+        const y = Math.min(Math.max(0, win.y), Math.max(0, bounds.h - height - 72))
 
         if (
           width === win.width &&
@@ -210,6 +222,13 @@ export function PeterOS({
     if (!isAppId(appId)) return
     const id = appId
 
+    setRunning((current) => {
+      if (current.has(id)) return current
+      const next = new Set(current)
+      next.add(id)
+      return next
+    })
+
     setZTop((z) => {
       const nextZ = z + 1
       setWindows((ws) => {
@@ -220,8 +239,14 @@ export function PeterOS({
           )
         }
         const place = defaultPlacement(id, ws.length, {
-          w: rootRef.current?.clientWidth ?? 800,
-          h: rootRef.current?.clientHeight ?? 500,
+          w:
+            desktopRef.current?.clientWidth ??
+            rootRef.current?.clientWidth ??
+            800,
+          h:
+            desktopRef.current?.clientHeight ??
+            rootRef.current?.clientHeight ??
+            500,
         })
         return [
           ...ws,
@@ -310,18 +335,37 @@ export function PeterOS({
   const putInTrash = useCallback(() => setTrashFull(true), [])
   const emptyTrash = useCallback(() => setTrashFull(false), [])
 
-  const close = useCallback((id: string) => {
-    setWindows((ws) => {
-      const next = ws.filter((w) => w.id !== id)
-      return next
+  const focusDockApp = useCallback((appId?: AppId) => {
+    if (!appId) return
+    requestAnimationFrame(() => {
+      rootRef.current
+        ?.querySelector<HTMLButtonElement>(`[data-dock-id="${appId}"]`)
+        ?.focus({ preventScroll: true })
     })
-    // Closing a window “throws it away” → full trash (classic Mac)
-    setTrashFull(true)
   }, [])
 
+  const close = useCallback((id: string) => {
+    const appId = windows.find((window) => window.id === id)?.appId
+    setWindows((ws) => ws.filter((w) => w.id !== id))
+    focusDockApp(appId)
+  }, [focusDockApp, windows])
+
+  const quitApp = useCallback((appId: AppId) => {
+    setWindows((ws) => ws.filter((window) => window.appId !== appId))
+    setRunning((current) => {
+      if (!current.has(appId)) return current
+      const next = new Set(current)
+      next.delete(appId)
+      return next
+    })
+    focusDockApp(appId)
+  }, [focusDockApp])
+
   const minimize = useCallback((id: string) => {
+    const appId = windows.find((window) => window.id === id)?.appId
     setWindows((ws) => ws.map((w) => (w.id === id ? { ...w, minimized: true } : w)))
-  }, [])
+    focusDockApp(appId)
+  }, [focusDockApp, windows])
 
   const maximize = useCallback((id: string) => {
     setWindows((ws) =>
@@ -331,6 +375,12 @@ export function PeterOS({
 
   const move = useCallback((id: string, x: number, y: number) => {
     setWindows((ws) => ws.map((w) => (w.id === id ? { ...w, x, y } : w)))
+  }, [])
+
+  const resize = useCallback((id: string, geometry: WindowGeometry) => {
+    setWindows((ws) =>
+      ws.map((w) => (w.id === id ? { ...w, ...geometry } : w))
+    )
   }, [])
 
   const focusedId = useMemo(() => {
@@ -349,6 +399,10 @@ export function PeterOS({
     if (focusedId) close(focusedId)
   }, [focusedId, close])
 
+  const quitFocused = useCallback(() => {
+    if (focusedAppId) quitApp(focusedAppId)
+  }, [focusedAppId, quitApp])
+
   const minimizeFocused = useCallback(() => {
     if (focusedId) minimize(focusedId)
   }, [focusedId, minimize])
@@ -358,17 +412,8 @@ export function PeterOS({
   }, [focusedId, maximize])
 
   const closeAll = useCallback(() => {
-    setWindows((ws) => {
-      if (ws.length) setTrashFull(true)
-      return []
-    })
+    setWindows([])
   }, [])
-
-  const running = useMemo(() => {
-    const s = new Set<AppId>()
-    windows.forEach((w) => s.add(w.appId))
-    return s
-  }, [windows])
 
   const renderApp = (appId: AppId) => {
     switch (appId) {
@@ -432,6 +477,60 @@ export function PeterOS({
     [appearance, setAppearance, openApp, trashFull, emptyTrash, putInTrash, isAppOpen]
   )
 
+  useEffect(() => {
+    if (suspended) return
+
+    const onShortcut = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && desktopMenu) {
+        event.preventDefault()
+        setDesktopMenu(null)
+        return
+      }
+      if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+        event.preventDefault()
+        setDesktopMenu({
+          x: Math.max(8, Math.min(32, bounds.w - 218)),
+          y: Math.max(8, Math.min(44, bounds.h - 252)),
+        })
+        return
+      }
+      if (!event.metaKey || event.ctrlKey || event.altKey) return
+
+      const key = event.key.toLowerCase()
+      if (key === "w" && focusedId) {
+        event.preventDefault()
+        closeFocused()
+      } else if (key === "m" && focusedId) {
+        event.preventDefault()
+        minimizeFocused()
+      } else if (key === "n") {
+        event.preventDefault()
+        openApp("finder")
+      } else if (key === "q" && focusedId) {
+        event.preventDefault()
+        quitFocused()
+      } else if (event.shiftKey && event.key === "Backspace" && trashFull) {
+        event.preventDefault()
+        emptyTrash()
+      }
+    }
+
+    window.addEventListener("keydown", onShortcut, true)
+    return () => window.removeEventListener("keydown", onShortcut, true)
+  }, [
+    closeFocused,
+    bounds.h,
+    bounds.w,
+    desktopMenu,
+    emptyTrash,
+    focusedId,
+    minimizeFocused,
+    openApp,
+    quitFocused,
+    suspended,
+    trashFull,
+  ])
+
   return (
     <PeterOSContext.Provider value={ctx}>
       <div
@@ -440,6 +539,11 @@ export function PeterOS({
         data-mode={mode}
         data-appearance={appearance}
         data-suspended={suspended}
+        onPointerDownCapture={(event) => {
+          const target = event.target
+          if (!(target instanceof Element)) return
+          if (!target.closest(".pos-context-menu")) setDesktopMenu(null)
+        }}
         onContextMenu={(e) => e.preventDefault()}
       >
         <MenuBar
@@ -448,6 +552,7 @@ export function PeterOS({
           appearance={appearance}
           openApp={openApp}
           closeFocused={closeFocused}
+          quitFocused={quitFocused}
           minimizeFocused={minimizeFocused}
           maximizeFocused={maximizeFocused}
           closeAll={closeAll}
@@ -458,6 +563,7 @@ export function PeterOS({
         />
 
         <div
+          ref={desktopRef}
           className="pos-desktop"
           onPointerDown={(event) => {
             const target = event.target
@@ -465,8 +571,107 @@ export function PeterOS({
             if (target.closest(".pos-desktop-icon, .pos-window")) return
             setSelectedDesktopApp(null)
           }}
+          onContextMenu={(event) => {
+            event.preventDefault()
+            const target = event.target
+            if (!(target instanceof Element)) return
+            if (target.closest(".pos-window, .pos-desktop-icon, .pos-dock")) return
+            const rect = event.currentTarget.getBoundingClientRect()
+            const menuWidth = 210
+            const menuHeight = 244
+            setSelectedDesktopApp(null)
+            setDesktopMenu({
+              x: Math.max(8, Math.min(event.clientX - rect.left, rect.width - menuWidth - 8)),
+              y: Math.max(8, Math.min(event.clientY - rect.top, rect.height - menuHeight - 8)),
+            })
+          }}
         >
           <div className="pos-wallpaper" aria-hidden />
+
+          {desktopMenu && (
+            <div
+              ref={contextMenuRef}
+              className="pos-context-menu"
+              role="menu"
+              aria-label="Desktop options"
+              style={{ left: desktopMenu.x, top: desktopMenu.y }}
+              onPointerDown={(event) => event.stopPropagation()}
+              onKeyDown={(event) => {
+                if (event.key === "Tab") {
+                  setDesktopMenu(null)
+                  return
+                }
+                if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+                  return
+                }
+                const items = Array.from(
+                  event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"),
+                )
+                if (!items.length) return
+                const current = items.indexOf(document.activeElement as HTMLButtonElement)
+                let next = current
+                if (event.key === "ArrowDown") next = (current + 1) % items.length
+                else if (event.key === "ArrowUp") {
+                  next = (current - 1 + items.length) % items.length
+                } else if (event.key === "Home") next = 0
+                else next = items.length - 1
+                event.preventDefault()
+                items[next]?.focus()
+              }}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  openApp("finder")
+                  setDesktopMenu(null)
+                }}
+              >
+                <span>New Finder Window</span>
+                <kbd>⌘N</kbd>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  openApp("terminal")
+                  setDesktopMenu(null)
+                }}
+              >
+                <span>Open Terminal</span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  openApp("about")
+                  setDesktopMenu(null)
+                }}
+              >
+                <span>About PeterOS</span>
+              </button>
+              <span className="pos-context-sep" role="separator" />
+              <span className="pos-context-label">Desktop appearance</span>
+              {(["light", "dark", "clear"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={appearance === option}
+                  className="pos-context-choice"
+                  onClick={() => {
+                    setAppearance(option)
+                    setDesktopMenu(null)
+                  }}
+                >
+                  <span className="pos-context-check" aria-hidden="true">
+                    {appearance === option ? "✓" : ""}
+                  </span>
+                  <span>{option[0].toUpperCase() + option.slice(1)}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="pos-desktop-icons pos-desktop-icons-right">
             {DESKTOP_APPS.map((app, index) => (
@@ -497,8 +702,9 @@ export function PeterOS({
                 <span className="pos-desktop-icon-glyph" aria-hidden>
                   <AppIcon
                     id={app.id}
-                    size={56}
+                    size={72}
                     appearance={appearance}
+                    open={running.has(app.id)}
                   />
                 </span>
                 <span className="pos-desktop-icon-label">{app.title}</span>
@@ -506,21 +712,26 @@ export function PeterOS({
             ))}
           </div>
 
-          {windows.map((win) => (
-            <WindowFrame
-              key={win.id}
-              win={win}
-              focused={win.id === focusedId}
-              onFocus={focus}
-              onClose={close}
-              onMinimize={minimize}
-              onMaximize={maximize}
-              onMove={move}
-              bounds={{ width: bounds.w, height: bounds.h }}
-            >
-              {renderApp(win.appId)}
-            </WindowFrame>
-          ))}
+          <AnimatePresence>
+            {windows
+              .filter((win) => !win.minimized)
+              .map((win) => (
+                <WindowFrame
+                  key={win.id}
+                  win={win}
+                  focused={win.id === focusedId}
+                  onFocus={focus}
+                  onClose={close}
+                  onMinimize={minimize}
+                  onMaximize={maximize}
+                  onMove={move}
+                  onResize={resize}
+                  bounds={{ width: bounds.w, height: bounds.h }}
+                >
+                  {renderApp(win.appId)}
+                </WindowFrame>
+              ))}
+          </AnimatePresence>
         </div>
 
         <Dock

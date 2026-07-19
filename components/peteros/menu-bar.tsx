@@ -32,6 +32,7 @@ type Props = {
   appearance: IconAppearance
   openApp: (id: AppId | string) => void
   closeFocused: () => void
+  quitFocused: () => void
   minimizeFocused: () => void
   maximizeFocused: () => void
   closeAll: () => void
@@ -87,6 +88,7 @@ export function MenuBar({
   appearance,
   openApp,
   closeFocused,
+  quitFocused,
   minimizeFocused,
   maximizeFocused,
   closeAll,
@@ -239,6 +241,7 @@ export function MenuBar({
       aria-haspopup="menu"
       aria-expanded={open === id}
       aria-controls={menuDomId(id)}
+      aria-label={id === "apple" ? "PeterOS menu" : undefined}
       onClick={(e) => {
         e.stopPropagation()
         lastTriggerRef.current = e.currentTarget
@@ -270,14 +273,24 @@ export function MenuBar({
   return (
     <header className="pos-menubar" ref={barRef}>
       <div className="pos-menubar-left">
-        {/*  */}
+        {/* PeterOS system menu */}
         <div className="pos-menu-wrap">
-          {titleBtn("apple", "", "pos-apple")}
+          {titleBtn(
+            "apple",
+            <AppIcon
+              id="about"
+              size={17}
+              appearance={appearance}
+              className="pos-system-mark"
+              open={isAppOpen("about")}
+            />,
+            "pos-apple",
+          )}
           {open === "apple" && (
             <div className="pos-menu-dropdown" {...menuProps("apple")}>
               <Item onClick={() => run(() => openApp("about"))}>About PeterOS</Item>
               <Sep />
-              <Item onClick={() => run(() => openApp("finder"))}>System Settings…</Item>
+              <Item onClick={() => run(() => openApp("finder"))}>Open Finder…</Item>
               <Sep />
               <Item
                 onClick={() => run(emptyTrash)}
@@ -309,16 +322,14 @@ export function MenuBar({
           {titleBtn("app", appName)}
           {open === "app" && (
             <div className="pos-menu-dropdown" {...menuProps("app")}>
-              <Item onClick={() => run(() => openApp(activeApp ?? "about"))}>
-                About {appName}
-              </Item>
+              <Item onClick={() => run(() => openApp("about"))}>About PeterOS</Item>
               <Sep />
               <Item
                 onClick={() => run(minimizeFocused)}
                 kbd="⌘M"
                 disabled={!activeApp}
               >
-                Hide {appName}
+                Minimize {appName}
               </Item>
               <Item
                 onClick={() => run(closeFocused)}
@@ -330,13 +341,9 @@ export function MenuBar({
               <Item onClick={() => run(closeAll)}>Close All Windows</Item>
               <Sep />
               <Item
-                onClick={() =>
-                  run(() => {
-                    if (mode === "fullscreen" && onCloseExpand) onCloseExpand()
-                    else if (mode === "page") window.location.href = "/"
-                  })
-                }
+                onClick={() => run(quitFocused)}
                 kbd="⌘Q"
+                disabled={!activeApp}
               >
                 Quit {appName}
               </Item>
@@ -350,9 +357,9 @@ export function MenuBar({
           {open === "file" && (
             <div className="pos-menu-dropdown" {...menuProps("file")}>
               <Item onClick={() => run(() => openApp("finder"))} kbd="⌘N">
-                New Finder Window
+                Open Finder
               </Item>
-              <Item onClick={() => run(() => openApp("terminal"))}>New Terminal</Item>
+              <Item onClick={() => run(() => openApp("terminal"))}>Open Terminal</Item>
               <Sep />
               <Item onClick={() => run(() => openApp("resume"))}>Open Résumé…</Item>
               <Item onClick={() => run(() => openApp("projects"))}>Open Projects…</Item>
@@ -438,8 +445,7 @@ export function MenuBar({
           {titleBtn("view", "View")}
           {open === "view" && (
             <div className="pos-menu-dropdown" {...menuProps("view")}>
-              <Item onClick={() => run(() => openApp("finder"))}>as Icons</Item>
-              <Item onClick={() => run(() => openApp("finder"))}>as List</Item>
+              <Item onClick={() => run(() => openApp("finder"))}>Show Finder</Item>
               <Sep />
               <Item onClick={() => run(maximizeFocused)} disabled={!activeApp}>
                 Enter Full Screen Window
@@ -466,6 +472,7 @@ export function MenuBar({
                     size={18}
                     appearance={appearance}
                     className="pos-menu-app-icon"
+                    open={isAppOpen(a.id)}
                   />
                   {a.title}
                   {isAppOpen(a.id) ? "  · open" : ""}
@@ -490,6 +497,7 @@ export function MenuBar({
                     size={18}
                     appearance={appearance}
                     className="pos-menu-app-icon"
+                    open={isAppOpen(a.id)}
                   />
                   {a.title}
                   {isAppOpen(a.id) ? "  · open" : ""}
@@ -506,6 +514,7 @@ export function MenuBar({
                     size={18}
                     appearance={appearance}
                     className="pos-menu-app-icon"
+                    open={isAppOpen(a.id)}
                   />
                   {a.title}
                   {isAppOpen(a.id) ? "  · open" : ""}
@@ -540,9 +549,7 @@ export function MenuBar({
           {open === "help" && (
             <div className="pos-menu-dropdown" {...menuProps("help")}>
               <Item onClick={() => run(() => openApp("about"))}>PeterOS Help</Item>
-              <Item onClick={() => run(() => openApp("terminal"))}>
-                Open Terminal (`help`)
-              </Item>
+              <Item onClick={() => run(() => openApp("terminal"))}>Open Terminal</Item>
               <Sep />
               <Item
                 onClick={() =>
@@ -563,7 +570,7 @@ export function MenuBar({
                 View Résumé
               </Item>
               <Sep />
-              <Item disabled>PeterOS v0.2 · vintage icons</Item>
+              <Item disabled>PeterOS 1.0 · custom icon system</Item>
             </div>
           )}
         </div>
@@ -576,7 +583,12 @@ export function MenuBar({
           </button>
         )}
         {mode === "embedded" && onExpand && (
-          <button type="button" className="pos-menu-item" onClick={onExpand}>
+          <button
+            type="button"
+            className="pos-menu-item"
+            aria-label="Enter full screen"
+            onClick={onExpand}
+          >
             ↗
           </button>
         )}

@@ -8,7 +8,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as RE,
 } from "react"
-import { SYSTEM_APPS, TOY_APPS, type AppId } from "./types"
+import { SYSTEM_APPS, type AppId } from "./types"
 import { AppIcon } from "./app-icon"
 import type { IconAppearance } from "./context"
 
@@ -29,8 +29,6 @@ type DockItem =
 const ITEMS: DockItem[] = [
   ...SYSTEM_APPS.map((a) => ({ kind: "app" as const, id: a.id, title: a.title })),
   { kind: "sep", id: "sep-1" },
-  ...TOY_APPS.map((a) => ({ kind: "app" as const, id: a.id, title: a.title })),
-  { kind: "sep", id: "sep-2" },
   { kind: "trash", id: "trash", title: "Trash" },
 ]
 
@@ -276,7 +274,7 @@ export function Dock({
                   id={item.id}
                   size={BASE}
                   appearance={appearance}
-                  open={isOpen}
+                  open={isRunning || isOpen}
                 />
               </span>
               <span className="pos-dock-tip" role="tooltip" aria-hidden="true">
