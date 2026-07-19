@@ -145,15 +145,21 @@
   animation: homeGridDrift 18s linear infinite;
 }
 
-.home::after {
+.home-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.home-ambient::before {
   content: "";
   position: absolute;
   top: -24vw;
   left: -28vw;
-  z-index: 0;
   width: 64vw;
   aspect-ratio: 1;
-  pointer-events: none;
   border-radius: 50%;
   background: radial-gradient(
     circle,
@@ -416,7 +422,7 @@
     animation: none;
   }
 
-  .home::after {
+  .home-ambient {
     display: none;
   }
 
@@ -799,6 +805,10 @@
   inset: 0;
   z-index: 930;
   pointer-events: none;
+}
+
+.pos-peel:is(.is-hover, .is-active, .is-dragging, .is-animating)
+  .pos-peel-flap-shadow {
   filter:
     drop-shadow(-7px 9px 11px rgba(0, 0, 0, 0.26))
     drop-shadow(-1px 2px 3px rgba(0, 0, 0, 0.16));
@@ -810,7 +820,6 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  will-change: transform, clip-path;
   /* corner-anchored so tone varies across the small visible wedge */
   background: radial-gradient(
     150% 150% at 100% 0%,
@@ -819,6 +828,17 @@
     #e4dac6 76%,
     #d8ccb5 100%
   );
+}
+
+.pos-peel:is(.is-hover, .is-active, .is-dragging, .is-animating)
+  .pos-peel-flap {
+  will-change: transform, clip-path;
+}
+
+.pos-shell[data-suspended="true"] *,
+.pos-shell[data-suspended="true"] *::before,
+.pos-shell[data-suspended="true"] *::after {
+  animation-play-state: paused !important;
 }
 
 /* faint mirrored bleed-through of the page print — the paper's backside */

@@ -36,6 +36,7 @@ type Mode = "embedded" | "fullscreen" | "page"
 
 type Props = {
   mode?: Mode
+  suspended?: boolean
   onExpand?: () => void
   onCloseExpand?: () => void
 }
@@ -74,7 +75,12 @@ function readAppearance(): IconAppearance {
   return "light"
 }
 
-export function PeterOS({ mode = "embedded", onExpand, onCloseExpand }: Props) {
+export function PeterOS({
+  mode = "embedded",
+  suspended = false,
+  onExpand,
+  onCloseExpand,
+}: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const bootedRef = useRef(false)
   const [bounds, setBounds] = useState({ w: 0, h: 0 })
@@ -99,6 +105,7 @@ export function PeterOS({ mode = "embedded", onExpand, onCloseExpand }: Props) {
   }, [])
 
   useEffect(() => {
+    if (suspended) return
     const el = rootRef.current
     if (!el) return
     const ro = new ResizeObserver(([entry]) => {
@@ -107,9 +114,10 @@ export function PeterOS({ mode = "embedded", onExpand, onCloseExpand }: Props) {
     })
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [suspended])
 
   useEffect(() => {
+    if (suspended) return
     let timeout = 0
 
     const tick = () => {
@@ -130,7 +138,7 @@ export function PeterOS({ mode = "embedded", onExpand, onCloseExpand }: Props) {
 
     tick()
     return () => window.clearTimeout(timeout)
-  }, [])
+  }, [suspended])
 
   useEffect(() => {
     if (bootedRef.current || bounds.w <= 0 || bounds.h <= 0) return
@@ -365,7 +373,7 @@ export function PeterOS({ mode = "embedded", onExpand, onCloseExpand }: Props) {
   const renderApp = (appId: AppId) => {
     switch (appId) {
       case "about":
-        return <AboutApp />
+        return <AboutApp suspended={suspended} />
       case "projects":
         return <ProjectsApp onOpenApp={openApp} />
       case "resume":
@@ -379,7 +387,7 @@ export function PeterOS({ mode = "embedded", onExpand, onCloseExpand }: Props) {
       case "ats":
         return <AtsApp />
       case "sensor":
-        return <SensorApp />
+        return <SensorApp suspended={suspended} />
       case "segment":
         return <SegmentApp />
       case "paint":
@@ -431,6 +439,7 @@ export function PeterOS({ mode = "embedded", onExpand, onCloseExpand }: Props) {
         className={shellClass}
         data-mode={mode}
         data-appearance={appearance}
+        data-suspended={suspended}
         onContextMenu={(e) => e.preventDefault()}
       >
         <MenuBar

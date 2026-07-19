@@ -5,7 +5,11 @@ import { useEffect, useRef, useState } from "react"
 const W = 400
 const H = 120
 
-export function SensorApp() {
+type Props = {
+  suspended?: boolean
+}
+
+export function SensorApp({ suspended = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const bufX = useRef<number[]>(Array(W).fill(H / 2))
   const bufY = useRef<number[]>(Array(W).fill(H / 2))
@@ -23,6 +27,7 @@ export function SensorApp() {
   }, [running])
 
   useEffect(() => {
+    if (suspended) return
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext("2d")
@@ -77,9 +82,10 @@ export function SensorApp() {
     }
     raf = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf)
-  }, [])
+  }, [suspended])
 
   useEffect(() => {
+    if (suspended) return
     if (mode !== "mouse") return
     const onMove = (e: MouseEvent) => {
       const c = canvasRef.current
@@ -95,9 +101,10 @@ export function SensorApp() {
     }
     window.addEventListener("mousemove", onMove)
     return () => window.removeEventListener("mousemove", onMove)
-  }, [mode])
+  }, [mode, suspended])
 
   useEffect(() => {
+    if (suspended) return
     if (mode !== "motion") return
     const handler = (e: DeviceMotionEvent) => {
       const a = e.accelerationIncludingGravity
@@ -110,7 +117,7 @@ export function SensorApp() {
     }
     window.addEventListener("devicemotion", handler)
     return () => window.removeEventListener("devicemotion", handler)
-  }, [mode])
+  }, [mode, suspended])
 
   return (
     <div className="mac-app sensor-app">

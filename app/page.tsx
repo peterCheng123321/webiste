@@ -15,6 +15,7 @@ export default function Home() {
   return (
     <main className="home">
       <div className="home-grid" aria-hidden="true" />
+      <div className="home-ambient" aria-hidden="true" />
 
       <div className="home-plate">
         <span className="home-plate-name">{personalInfo.name}</span>

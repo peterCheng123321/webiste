@@ -149,6 +149,7 @@ export function OsStage({ defaultExpanded = false }: Props) {
   // Control point = the grabbed corner's current position.
   const P = useRef<Pt>(defaultExpanded ? openPoint() : restPoint())
   const rafRef = useRef(0)
+  const hasOpenedRef = useRef(defaultExpanded)
   const openRef = useRef(open)
   openRef.current = open
   const activeRef = useRef(active)
@@ -196,17 +197,22 @@ export function OsStage({ defaultExpanded = false }: Props) {
     drag.current = null
     if (reducedMotion()) {
       P.current = openPoint()
+      hasOpenedRef.current = true
       setOpen(true)
       bump()
       return
     }
-    animateTo(openPoint(), OPEN_MS, easeInOutCubic, () => setOpen(true))
+    animateTo(openPoint(), OPEN_MS, easeInOutCubic, () => {
+      hasOpenedRef.current = true
+      setOpen(true)
+    })
   }, [animateTo, bump])
 
   const closeOS = useCallback(() => {
     setOpen(false)
     if (reducedMotion()) {
       setActive(false)
+      setHover(false)
       P.current = restPoint()
       bump()
       return
@@ -321,26 +327,43 @@ export function OsStage({ defaultExpanded = false }: Props) {
       openOS()
     } else {
       // spring back to the resting dog-ear
-      animateTo(restPoint(hover ? HOVER : REST), SPRING_MS, easeOutCubic, () => {
+      const restingPoint = restPoint(hover ? HOVER : REST)
+      const settleClosed = () => {
         setActive(false)
+        if (!hasOpenedRef.current) setBooted(false)
         bump()
-      })
+      }
+      if (reducedMotion()) {
+        P.current = restingPoint
+        settleClosed()
+      } else {
+        animateTo(restingPoint, SPRING_MS, easeOutCubic, settleClosed)
+      }
     }
   }
 
   const onEnter = () => {
     if (openRef.current) return
     setHover(true)
-    setBooted(true)
     if (!drag.current && !activeRef.current && !rafRef.current) {
-      animateTo(restPoint(HOVER), HOVER_MS, easeOutCubic)
+      if (reducedMotion()) {
+        P.current = restPoint(HOVER)
+        bump()
+      } else {
+        animateTo(restPoint(HOVER), HOVER_MS, easeOutCubic)
+      }
     }
   }
   const onLeave = () => {
     if (drag.current) return
     setHover(false)
     if (!activeRef.current && !openRef.current) {
-      animateTo(restPoint(REST), HOVER_MS, easeOutCubic)
+      if (reducedMotion()) {
+        P.current = restPoint(REST)
+        bump()
+      } else {
+        animateTo(restPoint(REST), HOVER_MS, easeOutCubic)
+      }
     }
   }
 
@@ -356,6 +379,8 @@ export function OsStage({ defaultExpanded = false }: Props) {
   const frac = clamp(travelled / diag(), 0, 1)
   const labelOpacity = open ? 0 : clamp(1 - frac * 6, 0, 1)
   const showChrome = !open
+  const animating = Boolean(rafRef.current)
+  const showFlapEffects = hover || active || dragging || animating
 
   return (
     <div
@@ -365,6 +390,7 @@ export function OsStage({ defaultExpanded = false }: Props) {
         active ? "is-active" : "",
         dragging ? "is-dragging" : "",
         hover ? "is-hover" : "",
+        animating ? "is-animating" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -385,7 +411,11 @@ export function OsStage({ defaultExpanded = false }: Props) {
           aria-modal={open || undefined}
           aria-label={open ? "PeterOS" : undefined}
         >
-          <PeterOS mode="fullscreen" onCloseExpand={open ? closeOS : undefined} />
+          <PeterOS
+            mode="fullscreen"
+            suspended={!open && !active}
+            onCloseExpand={open ? closeOS : undefined}
+          />
         </div>
       )}
 
@@ -402,9 +432,13 @@ export function OsStage({ defaultExpanded = false }: Props) {
               transformOrigin: "0 0",
             }}
           >
-            <div className="pos-peel-flap-grain" />
-            <div className="pos-peel-flap-shade" />
-            <div className="pos-peel-flap-sheen" />
+            {showFlapEffects ? (
+              <>
+                <div className="pos-peel-flap-grain" />
+                <div className="pos-peel-flap-shade" />
+                <div className="pos-peel-flap-sheen" />
+              </>
+            ) : null}
           </div>
         </div>
       )}

@@ -48,7 +48,11 @@ const TAB_LABELS: Array<[Tab, string]> = [
   ["contact", "Ports"],
 ]
 
-export function AboutApp() {
+type Props = {
+  suspended?: boolean
+}
+
+export function AboutApp({ suspended = false }: Props) {
   const { personalInfo, experiences, skills, awards, languages } = defaultData
   const [tab, setTab] = useState<Tab>("overview")
   const [station, setStation] = useState<StationId>("deloitte")
@@ -61,11 +65,12 @@ export function AboutApp() {
   )
 
   useEffect(() => {
+    if (suspended) return
     const tick = () => setNow(new Date())
     tick()
     const interval = window.setInterval(tick, 1000)
     return () => window.clearInterval(interval)
-  }, [])
+  }, [suspended])
 
   const shanghaiTime = now
     ? new Intl.DateTimeFormat("en-GB", {
