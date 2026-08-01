@@ -7,216 +7,257 @@ import {
   useState,
   type PointerEvent as RE,
 } from "react"
-import { PeterOS } from "./peter-os"
+import dynamic from "next/dynamic"
+
+const loadPeterOS = () => import("./peter-os").then((module) => module.PeterOS)
+const LazyPeterOS = dynamic(loadPeterOS, {
+  ssr: false,
+  loading: () => (
+    <div className="pos-shell pos-shell-fullscreen pos-shell-loading" aria-hidden>
+      <div className="pos-wallpaper" />
+    </div>
+  ),
+})
 
 type Props = {
   defaultExpanded?: boolean
 }
 
-const EAR = 100
-/** px of drag for a full peel — higher = need more drag, slower feel */
-const DRAG_FULL = 420
-/** fraction of peel to commit open on release */
-const COMMIT = 0.22
-/** rAF lerp toward target peel (lower = silkier / slower catch-up) */
-const LERP = 0.085
-/** click-to-open animation duration (ms) */
-const OPEN_MS = 1400
-const CLOSE_MS = 900
+type Pt = { x: number; y: number }
 
-/**
- * Triangle of revealed OS (peeled area) from top-right.
- * p=0 → ear size; p=1 → full screen.
- */
-function peeledClip(p: number): string {
-  if (p >= 0.995) return "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)"
-  const w =
-    typeof window !== "undefined"
-      ? Math.max(window.innerWidth, window.innerHeight)
-      : 1400
-  // smoothstep for gentler early growth
-  const t = p * p * (3 - 2 * p)
-  const size = EAR + t * (w * 1.6 - EAR)
-  return `polygon(100% 0%, 100% ${size}px, calc(100% - ${size}px) 0%)`
+/* ── tuning ────────────────────────────────────────────── */
+const REST = 40 // px dog-ear when idle
+const HOVER = 74 // px dog-ear on hover
+const OPEN_MS = 950
+const CLOSE_MS = 640
+const SPRING_MS = 520
+const HOVER_MS = 300
+/** commit-open on release once the grabbed corner has travelled this
+ *  fraction of the screen diagonal toward the far corner */
+const COMMIT = 0.4
+
+/* ── geometry helpers ──────────────────────────────────── */
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3)
+const easeInOutCubic = (t: number) =>
+  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+
+function vw() {
+  return typeof window !== "undefined" ? window.innerWidth : 1440
+}
+function vh() {
+  return typeof window !== "undefined" ? window.innerHeight : 900
+}
+function diag() {
+  return Math.hypot(vw(), vh())
+}
+/** unit vector from the grabbed corner (top-right) toward the far corner (bottom-left) */
+function dHat(): Pt {
+  const W = vw()
+  const H = vh()
+  const L = Math.hypot(W, H) || 1
+  return { x: -W / L, y: H / L }
+}
+function corner(): Pt {
+  return { x: vw(), y: 0 }
+}
+function restPoint(len = REST): Pt {
+  const c = corner()
+  const d = dHat()
+  return { x: c.x + d.x * len, y: c.y + d.y * len }
+}
+function openPoint(): Pt {
+  const c = corner()
+  const d = dHat()
+  const L = diag() * 1.7 // push the crease well past the far corner → full reveal
+  return { x: c.x + d.x * L, y: c.y + d.y * L }
 }
 
 /**
- * Inverse: remaining webpage sheet still covering the screen.
- * Hole cut from top-right triangle grows as peel increases.
+ * Sutherland–Hodgman clip of `poly` by the half-plane { X : (X − M)·dir ≤ 0 }.
+ * `dir` points OUT of the kept region.
  */
-function pageSheetClip(p: number): string {
-  if (p <= 0.001) return "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)"
-  if (p >= 0.995) return "polygon(0% 0%, 0% 0%, 0% 0%)" // gone
-  const w =
-    typeof window !== "undefined"
-      ? Math.max(window.innerWidth, window.innerHeight)
-      : 1400
-  const t = p * p * (3 - 2 * p)
-  const size = EAR + t * (w * 1.6 - EAR)
-  // Full rect with a triangular bite from the top-right
-  return `polygon(0% 0%, calc(100% - ${size}px) 0%, 100% ${size}px, 100% 100%, 0% 100%)`
+function clipHalfPlane(poly: Pt[], M: Pt, dir: Pt): Pt[] {
+  const side = (p: Pt) => (p.x - M.x) * dir.x + (p.y - M.y) * dir.y
+  const out: Pt[] = []
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i]
+    const b = poly[(i + 1) % poly.length]
+    const da = side(a)
+    const db = side(b)
+    if (da <= 0) {
+      out.push(a)
+      if (db > 0) {
+        const t = da / (da - db)
+        out.push({ x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) })
+      }
+    } else if (db <= 0) {
+      const t = da / (da - db)
+      out.push({ x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) })
+    }
+  }
+  return out
+}
+
+function polyToClip(poly: Pt[]): string {
+  if (poly.length < 3) return "polygon(0 0, 0 0, 0 0)"
+  return (
+    "polygon(" +
+    poly.map((p) => `${p.x.toFixed(1)}px ${p.y.toFixed(1)}px`).join(", ") +
+    ")"
+  )
+}
+
+/**
+ * Fold the page corner C=(W,0) onto the control point P.
+ * The crease is the perpendicular bisector of C→P, so C reflects exactly onto P.
+ * Returns the lifted-wedge clip (pre-transform) and the CSS reflection matrix
+ * that maps that wedge onto the flap.
+ */
+function foldGeometry(P: Pt) {
+  const W = vw()
+  const H = vh()
+  const C = corner()
+  const M = { x: (C.x + P.x) / 2, y: (C.y + P.y) / 2 }
+  const dir = { x: C.x - P.x, y: C.y - P.y } // normal to the crease, points P→C
+  const rect: Pt[] = [
+    { x: 0, y: 0 },
+    { x: W, y: 0 },
+    { x: W, y: H },
+    { x: 0, y: H },
+  ]
+  // lifted wedge = the half nearer C
+  const wedgePoly = clipHalfPlane(rect, M, { x: -dir.x, y: -dir.y })
+
+  // reflection across the crease: X' = X − 2((X−M)·û)û
+  const len = Math.hypot(dir.x, dir.y) || 1
+  const ux = dir.x / len
+  const uy = dir.y / len
+  const a = 1 - 2 * ux * ux
+  const b = -2 * ux * uy
+  const c = -2 * ux * uy
+  const d = 1 - 2 * uy * uy
+  const mdotu = M.x * ux + M.y * uy
+  const e = 2 * mdotu * ux
+  const f = 2 * mdotu * uy
+  const matrix = `matrix(${a.toFixed(4)}, ${b.toFixed(4)}, ${c.toFixed(4)}, ${d.toFixed(4)}, ${e.toFixed(2)}, ${f.toFixed(2)})`
+
+  return { wedgeClip: polyToClip(wedgePoly), matrix }
 }
 
 export function OsStage({ defaultExpanded = false }: Props) {
   const [open, setOpen] = useState(defaultExpanded)
   const [booted, setBooted] = useState(defaultExpanded)
+  const [active, setActive] = useState(defaultExpanded) // peel in progress
   const [dragging, setDragging] = useState(false)
   const [hover, setHover] = useState(false)
-  const [pageShot, setPageShot] = useState<string | null>(null)
-  const [capturing, setCapturing] = useState(false)
+  const [mounted, setMounted] = useState(defaultExpanded)
 
-  // Smooth peel: target is what gesture wants; display is lerped
-  const targetPeel = useRef(defaultExpanded ? 1 : 0)
-  const displayPeel = useRef(defaultExpanded ? 1 : 0)
-  const [, setTick] = useState(0) // force render for lerp frames
+  const [, force] = useState(0)
+  const bump = useCallback(() => force((n) => (n + 1) % 1_000_000), [])
+
+  // Control point = the grabbed corner's current position.
+  const P = useRef<Pt>(defaultExpanded ? openPoint() : restPoint())
   const rafRef = useRef(0)
-  const animatingRef = useRef(false)
-
+  const renderRafRef = useRef(0)
+  const hasOpenedRef = useRef(defaultExpanded)
   const openRef = useRef(open)
   openRef.current = open
+  const activeRef = useRef(active)
+  activeRef.current = active
 
-  const drag = useRef<{
-    id: number
-    x0: number
-    y0: number
-    peel0: number
-    moved: boolean
-  } | null>(null)
+  const drag = useRef<{ id: number; moved: boolean; x0: number; y0: number } | null>(
+    null,
+  )
 
-  const bump = () => setTick((n) => (n + 1) % 1_000_000)
-
-  // Continuous lerp loop while not fully settled open
-  useEffect(() => {
-    let alive = true
-    const tick = () => {
-      if (!alive) return
-      const target = openRef.current ? 1 : targetPeel.current
-      const cur = displayPeel.current
-      const next = cur + (target - cur) * (dragging ? 0.22 : LERP)
-      const settled = Math.abs(next - target) < 0.001
-      displayPeel.current = settled ? target : next
-      if (!settled || animatingRef.current || dragging) {
-        bump()
-      }
-      rafRef.current = requestAnimationFrame(tick)
-    }
-    rafRef.current = requestAnimationFrame(tick)
-    return () => {
-      alive = false
-      cancelAnimationFrame(rafRef.current)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dragging])
-
-  const setTargetPeel = useCallback((p: number) => {
-    targetPeel.current = Math.min(1, Math.max(0, p))
+  const stopAnim = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = 0
   }, [])
 
-  const capturePage = useCallback(async () => {
-    if (pageShot || capturing) return pageShot
-    setCapturing(true)
-    try {
-      const { toPng } = await import("html-to-image")
-      // Hide our own peel chrome so it isn't in the shot
-      const peelRoot = document.querySelector(".pos-peel") as HTMLElement | null
-      const prev = peelRoot?.style.visibility
-      if (peelRoot) peelRoot.style.visibility = "hidden"
-
-      const node =
-        (document.querySelector("main.home") as HTMLElement | null) ??
-        document.body
-
-      const dataUrl = await toPng(node, {
-        cacheBust: true,
-        pixelRatio: Math.min(2, window.devicePixelRatio || 1),
-        backgroundColor: "#ffffff",
-        filter: (el) => {
-          if (!(el instanceof HTMLElement)) return true
-          // never include peel UI in snapshot
-          return !el.classList?.contains("pos-peel") && !el.closest?.(".pos-peel")
-        },
-      })
-
-      if (peelRoot) peelRoot.style.visibility = prev ?? ""
-      setPageShot(dataUrl)
-      return dataUrl
-    } catch (err) {
-      console.warn("[PeterOS] page snapshot failed, using solid sheet", err)
-      return null
-    } finally {
-      setCapturing(false)
-      const peelRoot = document.querySelector(".pos-peel") as HTMLElement | null
-      if (peelRoot) peelRoot.style.visibility = ""
-    }
-  }, [pageShot, capturing])
-
-  const openOS = useCallback(async () => {
-    setBooted(true)
-    await capturePage()
-    animatingRef.current = true
-    setTargetPeel(1)
-    // Slow ease to fully open, then lock interactive
-    const start = performance.now()
-    const from = displayPeel.current
-    const step = (now: number) => {
-      const t = Math.min(1, (now - start) / OPEN_MS)
-      // ease-in-out cubic — slower in the middle, deliberate
-      const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-      targetPeel.current = from + (1 - from) * e
-      displayPeel.current = targetPeel.current
+  const scheduleBump = useCallback(() => {
+    if (renderRafRef.current) return
+    renderRafRef.current = requestAnimationFrame(() => {
+      renderRafRef.current = 0
       bump()
-      if (t < 1) {
-        requestAnimationFrame(step)
-      } else {
-        animatingRef.current = false
-        setOpen(true)
-        targetPeel.current = 1
-        displayPeel.current = 1
+    })
+  }, [bump])
+
+  const animateTo = useCallback(
+    (to: Pt, dur: number, ease: (t: number) => number, onDone?: () => void) => {
+      stopAnim()
+      const from = { ...P.current }
+      const start = performance.now()
+      const step = (now: number) => {
+        const t = Math.min(1, (now - start) / dur)
+        const k = ease(t)
+        P.current = { x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k }
         bump()
+        if (t < 1) {
+          rafRef.current = requestAnimationFrame(step)
+        } else {
+          rafRef.current = 0
+          onDone?.()
+        }
       }
-    }
-    requestAnimationFrame(step)
+      rafRef.current = requestAnimationFrame(step)
+    },
+    [bump, stopAnim],
+  )
+
+  const reducedMotion = () =>
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+
+  const openOS = useCallback(() => {
+    void loadPeterOS()
+    setBooted(true)
+    setActive(true)
     setDragging(false)
     drag.current = null
-  }, [capturePage, setTargetPeel])
+    if (reducedMotion()) {
+      P.current = openPoint()
+      hasOpenedRef.current = true
+      setOpen(true)
+      bump()
+      return
+    }
+    animateTo(openPoint(), OPEN_MS, easeInOutCubic, () => {
+      hasOpenedRef.current = true
+      setOpen(true)
+    })
+  }, [animateTo, bump])
 
   const closeOS = useCallback(() => {
     setOpen(false)
-    animatingRef.current = true
-    const start = performance.now()
-    const from = displayPeel.current
-    const step = (now: number) => {
-      const t = Math.min(1, (now - start) / CLOSE_MS)
-      const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-      const v = from * (1 - e)
-      targetPeel.current = v
-      displayPeel.current = v
+    if (reducedMotion()) {
+      setActive(false)
+      setHover(false)
+      P.current = restPoint()
       bump()
-      if (t < 1) {
-        requestAnimationFrame(step)
-      } else {
-        animatingRef.current = false
-        targetPeel.current = 0
-        displayPeel.current = 0
-        setDragging(false)
-        drag.current = null
-        bump()
-      }
+      return
     }
-    requestAnimationFrame(step)
-  }, [])
+    P.current = openPoint()
+    animateTo(restPoint(), CLOSE_MS, easeOutCubic, () => {
+      setActive(false)
+      setHover(false)
+      bump()
+    })
+  }, [animateTo, bump])
 
+  // Delegated open triggers ([data-open-peteros] buttons anywhere on the page)
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if ((e.target as HTMLElement | null)?.closest?.("[data-open-peteros]")) {
         e.preventDefault()
-        void openOS()
+        openOS()
       }
     }
     document.addEventListener("click", onClick)
     return () => document.removeEventListener("click", onClick)
   }, [openOS])
 
+  // Esc to close + lock scroll while open
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -232,37 +273,72 @@ export function OsStage({ defaultExpanded = false }: Props) {
   }, [open, closeOS])
 
   useEffect(() => {
-    if (!booted && (hover || dragging || displayPeel.current > 0.01 || open)) {
-      setBooted(true)
+    if (open) document.documentElement.dataset.peterosOpen = "true"
+    else delete document.documentElement.dataset.peterosOpen
+    return () => {
+      delete document.documentElement.dataset.peterosOpen
     }
-  }, [hover, dragging, open, booted])
+  }, [open])
 
-  const onPointerDown = async (e: RE) => {
-    if (openRef.current || animatingRef.current) return
+  // Keep the idle dog-ear anchored to the corner across resizes
+  useEffect(() => {
+    const onResize = () => {
+      if (openRef.current || activeRef.current || rafRef.current) return
+      P.current = restPoint(hover ? HOVER : REST)
+      bump()
+    }
+    window.addEventListener("resize", onResize)
+    return () => window.removeEventListener("resize", onResize)
+  }, [hover, bump])
+
+  // Settle the idle dog-ear with real viewport dims once mounted — otherwise
+  // the SSR fallback dimensions (1440×900) bake a giant fold into first paint.
+  useEffect(() => {
+    if (!openRef.current && !activeRef.current) {
+      P.current = defaultExpanded ? openPoint() : restPoint(REST)
+    }
+    setMounted(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(
+    () => () => {
+      stopAnim()
+      cancelAnimationFrame(renderRafRef.current)
+    },
+    [stopAnim],
+  )
+
+  /* ── pointer / drag ──────────────────────────────────── */
+  const onPointerDown = (e: RE) => {
+    if (openRef.current) return
     if (e.button !== 0 && e.pointerType === "mouse") return
     e.preventDefault()
     e.stopPropagation()
-    void capturePage()
+    void loadPeterOS()
+    stopAnim()
     setBooted(true)
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    drag.current = {
-      id: e.pointerId,
-      x0: e.clientX,
-      y0: e.clientY,
-      peel0: displayPeel.current,
-      moved: false,
+    setActive(true)
+    try {
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    } catch {
+      /* ignore */
     }
+    drag.current = { id: e.pointerId, moved: false, x0: e.clientX, y0: e.clientY }
     setDragging(true)
   }
 
   const onPointerMove = (e: RE) => {
     const d = drag.current
     if (!d || d.id !== e.pointerId) return
-    const dist = Math.hypot(e.clientX - d.x0, e.clientY - d.y0)
-    if (dist > 8) d.moved = true
-    // Softer mapping — more travel for same peel
-    const next = Math.min(1, Math.max(0, d.peel0 + dist / DRAG_FULL))
-    setTargetPeel(next)
+    if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) > 6) d.moved = true
+    // 1:1 — the corner goes exactly where the cursor is (a touch of headroom
+    // beyond the edges so you can fling it fully open)
+    P.current = {
+      x: clamp(e.clientX, -0.25 * vw(), vw()),
+      y: clamp(e.clientY, 0, 1.25 * vh()),
+    }
+    scheduleBump()
   }
 
   const finish = (e: RE) => {
@@ -273,140 +349,160 @@ export function OsStage({ defaultExpanded = false }: Props) {
     } catch {
       /* ignore */
     }
-    const dist = Math.hypot(e.clientX - d.x0, e.clientY - d.y0)
-    const moved = d.moved || dist > 8
-    const p = displayPeel.current
     drag.current = null
     setDragging(false)
 
-    if (!moved) {
-      void openOS()
+    // click (no real drag) → full open
+    if (!d.moved) {
+      openOS()
       return
     }
-    if (p >= COMMIT || dist >= DRAG_FULL * COMMIT) {
-      void openOS()
+    const travelled = Math.hypot(P.current.x - corner().x, P.current.y - corner().y)
+    if (travelled >= COMMIT * diag()) {
+      openOS()
     } else {
-      // slow snap shut
-      animatingRef.current = true
-      const start = performance.now()
-      const from = displayPeel.current
-      const step = (now: number) => {
-        const t = Math.min(1, (now - start) / 700)
-        const e2 = 1 - Math.pow(1 - t, 3)
-        const v = from * (1 - e2)
-        targetPeel.current = v
-        displayPeel.current = v
+      // spring back to the resting dog-ear
+      const restingPoint = restPoint(hover ? HOVER : REST)
+      const settleClosed = () => {
+        setActive(false)
+        if (!hasOpenedRef.current) setBooted(false)
         bump()
-        if (t < 1) requestAnimationFrame(step)
-        else {
-          animatingRef.current = false
-          targetPeel.current = 0
-          displayPeel.current = 0
-          bump()
-        }
       }
-      requestAnimationFrame(step)
+      if (reducedMotion()) {
+        P.current = restingPoint
+        settleClosed()
+      } else {
+        animateTo(restingPoint, SPRING_MS, easeOutCubic, settleClosed)
+      }
     }
   }
 
-  const p = displayPeel.current
-  const showCurl = !open
-  const showLayers = booted && (open || p > 0.002 || hover || dragging || capturing)
+  const onEnter = () => {
+    if (openRef.current) return
+    void loadPeterOS()
+    setHover(true)
+    if (!drag.current && !activeRef.current && !rafRef.current) {
+      if (reducedMotion()) {
+        P.current = restPoint(HOVER)
+        bump()
+      } else {
+        animateTo(restPoint(HOVER), HOVER_MS, easeOutCubic)
+      }
+    }
+  }
+  const onLeave = () => {
+    if (drag.current) return
+    setHover(false)
+    if (!activeRef.current && !openRef.current) {
+      if (reducedMotion()) {
+        P.current = restPoint(REST)
+        bump()
+      } else {
+        animateTo(restPoint(REST), HOVER_MS, easeOutCubic)
+      }
+    }
+  }
 
-  const curlScale = 1 + p * 1.6 + (hover && !dragging ? 0.05 : 0)
-  const curlOpacity = open ? 0 : Math.max(0, 1 - p * 1.15)
-  const curlTX = p * 36
-  const curlTY = p * 28
+  // Render nothing geometry-dependent until mounted, so SSR and the first
+  // client paint agree and real viewport dims drive the fold.
+  if (!mounted) {
+    return <div className="pos-peel" aria-hidden />
+  }
+
+  /* ── derived render state ────────────────────────────── */
+  const geo = foldGeometry(P.current)
+  const travelled = Math.hypot(P.current.x - corner().x, P.current.y - corner().y)
+  const frac = clamp(travelled / diag(), 0, 1)
+  const labelOpacity = open ? 0 : clamp(1 - frac * 6, 0, 1)
+  const showChrome = !open
+  const animating = Boolean(rafRef.current)
+  const showFlapEffects = hover || active || dragging || animating
 
   return (
     <div
       className={[
         "pos-peel",
         open ? "is-open" : "",
+        active ? "is-active" : "",
         dragging ? "is-dragging" : "",
         hover ? "is-hover" : "",
+        animating ? "is-animating" : "",
       ]
         .filter(Boolean)
         .join(" ")}
     >
-      {showLayers && (
-        <>
-          {/* Bottom: full PeterOS (always full-bleed under the peeling page) */}
-          <div
-            className="pos-peel-os"
-            style={{
-              opacity: p > 0.01 || open ? 1 : 0,
-              pointerEvents: open ? "auto" : "none",
-              transition: dragging ? "none" : "opacity 0.4s ease",
-            }}
-            role={open ? "dialog" : undefined}
-            aria-modal={open || undefined}
-            aria-label={open ? "PeterOS" : undefined}
-          >
-            <PeterOS
-              mode="fullscreen"
-              onCloseExpand={open ? closeOS : undefined}
-            />
-          </div>
-
-          {/* Top: snapshot of the real homepage — peels away as triangle hole grows */}
-          {!open && (
-            <div
-              className="pos-peel-page"
-              style={{
-                clipPath: pageSheetClip(p),
-                opacity: p >= 0.99 ? 0 : 1,
-                backgroundImage: pageShot ? `url(${pageShot})` : undefined,
-              }}
-              aria-hidden
-            >
-              {!pageShot && <div className="pos-peel-page-fallback" />}
-              {/* Soft shadow along the peel edge */}
-              <div
-                className="pos-peel-page-edge"
-                style={{
-                  // edge follows triangle size
-                  opacity: p > 0.02 && p < 0.98 ? 0.55 : 0,
-                }}
-              />
-            </div>
-          )}
-        </>
+      {/* PeterOS underneath, revealed through the peeled wedge — mounted once
+          booted. Clipped to the wedge while peeling so the live homepage shows
+          on the still-flat side; unclipped (full-bleed) once open. */}
+      {booted && (
+        <div
+          className="pos-peel-os"
+          style={{
+            clipPath: open ? undefined : geo.wedgeClip,
+            opacity: open || active ? 1 : 0,
+            visibility: open || active ? "visible" : "hidden",
+            pointerEvents: open ? "auto" : "none",
+          }}
+          role={open ? "dialog" : undefined}
+          aria-modal={open || undefined}
+          aria-label={open ? "PeterOS" : undefined}
+        >
+          <LazyPeterOS
+            mode="fullscreen"
+            onCloseExpand={open ? closeOS : undefined}
+          />
+        </div>
       )}
 
-      {showCurl && (
+      {/* The lifted flap — the folded corner showing the paper backside.
+          Outer layer carries the cast shadow (unclipped) so it isn't clipped
+          away with the flap; inner layer is clipped to the wedge + reflected. */}
+      {!open && (
+        <div className="pos-peel-flap-shadow" aria-hidden>
+          <div
+            className="pos-peel-flap"
+            style={{
+              clipPath: geo.wedgeClip,
+              transform: geo.matrix,
+              transformOrigin: "0 0",
+            }}
+          >
+            {showFlapEffects ? (
+              <>
+                <div className="pos-peel-flap-grain" />
+                <div className="pos-peel-flap-shade" />
+                <div className="pos-peel-flap-sheen" />
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* Grab target + invitation label */}
+      {showChrome && (
         <button
           type="button"
-          className="pos-peel-curl"
-          aria-label="Peel open PeterOS — click or drag slowly"
-          style={{
-            transform: `translate3d(${curlTX}px, ${curlTY}px, 0) scale(${curlScale})`,
-            opacity: curlOpacity,
-            transition: dragging
-              ? "none"
-              : "transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease",
-          }}
+          className="pos-peel-hit"
+          aria-label="Peel the page open to PeterOS — click or drag the corner"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={finish}
           onPointerCancel={finish}
-          onMouseEnter={() => {
-            setHover(true)
-            void capturePage()
-          }}
-          onMouseLeave={() => {
-            if (!drag.current) setHover(false)
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return
+            event.preventDefault()
+            openOS()
           }}
         >
-          <span className="pos-peel-curl-sheet" aria-hidden>
-            <span className="pos-peel-curl-grain" />
-            <span className="pos-peel-curl-fold" />
-            <span className="pos-peel-curl-shine" />
-          </span>
-          <span className="pos-peel-curl-underside" aria-hidden />
-          <span className="pos-peel-curl-label">
+          <span
+            className="pos-peel-label"
+            style={{ opacity: labelOpacity }}
+            aria-hidden
+          >
             <em>PeterOS</em>
-            <small>click · drag</small>
+            <small>peel ↘</small>
           </span>
         </button>
       )}
