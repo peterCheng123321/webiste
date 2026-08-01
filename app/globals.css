@@ -6519,7 +6519,6 @@ html[data-peteros-open="true"] .home-ambient::before {
 }
 
 /* Shared left rail — no horizontal centering */
-.blog-top,
 .blog-hero,
 .blog-empty,
 .blog-list,
@@ -6535,17 +6534,33 @@ html[data-peteros-open="true"] .home-ambient::before {
   text-align: left;
 }
 
+/* Full-width header: back stays left, Home sticks to the right edge */
 .blog-top {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 1rem;
-  padding-top: 1.25rem;
-  padding-bottom: 0.5rem;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 1.25rem var(--blog-pad-x) 0.5rem;
+  box-sizing: border-box;
+  text-align: left;
   font-size: 14px;
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
+}
+
+.blog-top-back {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.blog-top-site {
+  flex: 0 0 auto;
+  margin-left: auto;
+  text-align: right;
 }
 
 .blog-top a {
