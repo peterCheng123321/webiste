@@ -77,7 +77,8 @@ export const defaultData: WebsiteData = {
   personalInfo: {
     name: "Zhongquan Cheng",
     title: "Analyst · Technology Transformation",
-    bio: "Incoming Analyst 1 at Deloitte (Technology Transformation), full-time — previously building backends and applied ML at WashU and Undergraduation.com. My work sits between reliable engineering and research: server optimization, sensor pipelines, and computer-vision segmentation for health.",
+    // Prefer lib/role.deloitteBio() for date-aware copy on the site.
+    bio: "Analyst 1 at Deloitte (Technology Transformation) in Shanghai — previously building backends and applied ML at WashU and Undergraduation.com. My work sits between reliable engineering and research: server optimization, sensor pipelines, and computer-vision segmentation for health.",
     location: "Shanghai",
     email: "chengzhongquan0630@gmail.com",
     phone: "+1 (315) 317-5618",
@@ -110,11 +111,12 @@ export const defaultData: WebsiteData = {
       title: "Analyst 1 · Technology Transformation",
       company: "Deloitte",
       location: "Shanghai, China",
-      startDate: "2026-08",
+      startDate: "2026-08-14",
       endDate: "",
       current: true,
       description: [
-        "Incoming full-time Analyst 1 on the Technology Transformation practice.",
+        // First bullet is rewritten at display time via deloitteExperienceLead().
+        "Full-time Analyst 1 on the Technology Transformation practice in Shanghai.",
         "Focus: helping clients modernize systems, deliver technology-enabled change, and ship reliable digital outcomes.",
         "Bringing backend engineering, applied ML, and research experience into consulting delivery.",
       ],

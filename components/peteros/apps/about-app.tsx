@@ -8,39 +8,48 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react"
 import { defaultData } from "@/lib/default-data"
+import {
+  deloitteBootLabel,
+  deloitteExperienceLead,
+  deloittePhaseLabel,
+  deloitteProcessState,
+  deloitteRoleLine,
+  deloitteStationDetail,
+  deloitteStationMeta,
+  deloitteStatusMeta,
+  hasStartedAtDeloitte,
+} from "@/lib/role"
 
 type Tab = "overview" | "experience" | "skills" | "contact"
 type StationId = "syracuse" | "washu" | "deloitte"
 
-const STATIONS: Array<{
-  id: StationId
-  label: string
-  meta: string
-  phase: string
-  detail: string
-}> = [
-  {
-    id: "syracuse",
-    label: "Syracuse",
-    meta: "B.S. CS · 2025",
-    phase: "ARCHIVED / FOUNDATION",
-    detail: "Systems, mobile engineering, and research foundations came online here.",
-  },
-  {
-    id: "washu",
-    label: "WashU",
-    meta: "M.S. CS · live",
-    phase: "ACTIVE / RESEARCH",
-    detail: "Applied ML, computer vision, and reliable data pipelines are running now.",
-  },
-  {
-    id: "deloitte",
-    label: "Deloitte",
-    meta: "Analyst 1 · next",
-    phase: "QUEUED / NEXT BOOT",
-    detail: "Technology Transformation in Shanghai is the next system environment.",
-  },
-]
+function buildStations(now: Date) {
+  return [
+    {
+      id: "syracuse" as const,
+      label: "Syracuse",
+      meta: "B.S. CS · 2025",
+      phase: "ARCHIVED / FOUNDATION",
+      detail:
+        "Systems, mobile engineering, and research foundations came online here.",
+    },
+    {
+      id: "washu" as const,
+      label: "WashU",
+      meta: "M.S. CS · live",
+      phase: "ACTIVE / RESEARCH",
+      detail:
+        "Applied ML, computer vision, and reliable data pipelines are running now.",
+    },
+    {
+      id: "deloitte" as const,
+      label: "Deloitte",
+      meta: deloitteStationMeta(now),
+      phase: deloittePhaseLabel(now),
+      detail: deloitteStationDetail(now),
+    },
+  ]
+}
 
 const TAB_LABELS: Array<[Tab, string]> = [
   ["overview", "Identity"],
@@ -68,13 +77,17 @@ export function AboutApp({ suspended = false }: Props) {
   const [now, setNow] = useState<Date | null>(null)
   const [tabOrientation, setTabOrientation] = useState<"vertical" | "horizontal">("vertical")
   const layoutRef = useRef<HTMLDivElement>(null)
+  const clock = now ?? new Date()
+  const started = hasStartedAtDeloitte(clock)
   const deloitte = experiences.find((e) => e.company === "Deloitte")
   const current = experiences.filter((e) => e.current)
-  const queuedCount = current.filter((e) => e.company === "Deloitte").length
+  const deloitteQueued = current.some((e) => e.company === "Deloitte") && !started
+  const queuedCount = deloitteQueued ? 1 : 0
   const liveCount = current.length - queuedCount
+  const stations = useMemo(() => buildStations(clock), [clock])
   const selectedStation = useMemo(
-    () => STATIONS.find((item) => item.id === station) ?? STATIONS[0],
-    [station],
+    () => stations.find((item) => item.id === station) ?? stations[0],
+    [station, stations],
   )
 
   useEffect(() => {
@@ -113,7 +126,8 @@ export function AboutApp({ suspended = false }: Props) {
   }, [])
 
   const shanghaiTime = now ? SHANGHAI_TIME_FORMATTER.format(now) : "--:--:--"
-  const bootWindow = deloitte?.startDate.replace("-", ".") ?? "2026.08"
+  const bootWindow =
+    deloitte?.startDate.replace(/-/g, ".").slice(0, 7) ?? "2026.08"
 
   const onTabKeyDown = (
     event: ReactKeyboardEvent<HTMLButtonElement>,
@@ -212,7 +226,7 @@ export function AboutApp({ suspended = false }: Props) {
                     <h2>
                       Peter <span>Cheng</span>
                     </h2>
-                    <p>Incoming Analyst · Technology Transformation</p>
+                    <p>{deloitteRoleLine(clock)}</p>
                   </div>
 
                   <div className="about-local-time">
@@ -223,7 +237,7 @@ export function AboutApp({ suspended = false }: Props) {
 
                 <div className="about-boot-strip">
                   <div>
-                    <span>Next boot</span>
+                    <span>{deloitteBootLabel(clock)}</span>
                     <strong>Deloitte</strong>
                   </div>
                   <div>
@@ -235,7 +249,8 @@ export function AboutApp({ suspended = false }: Props) {
                     <strong>{bootWindow}</strong>
                   </div>
                   <div className="about-boot-state">
-                    <span aria-hidden="true" /> QUEUED
+                    <span aria-hidden="true" />{" "}
+                    {started ? "LIVE" : "QUEUED"}
                   </div>
                 </div>
 
@@ -245,7 +260,7 @@ export function AboutApp({ suspended = false }: Props) {
                     <span>03 nodes</span>
                   </div>
                   <div className="about-route-track">
-                    {STATIONS.map((item, index) => (
+                    {stations.map((item, index) => (
                       <button
                         key={item.id}
                         type="button"
@@ -280,10 +295,15 @@ export function AboutApp({ suspended = false }: Props) {
                     <span>Process</span>
                     <span>State</span>
                   </div>
-                  {current.map((experience, index) => (
+                  {current.map((experience, index) => {
+                    const state =
+                      experience.company === "Deloitte"
+                        ? deloitteProcessState(clock)
+                        : "live"
+                    return (
                     <div
                       className={
-                        experience.company === "Deloitte"
+                        state === "queued"
                           ? "about-process-row queued"
                           : "about-process-row"
                       }
@@ -296,10 +316,11 @@ export function AboutApp({ suspended = false }: Props) {
                       </span>
                       <span className="about-process-state">
                         <span aria-hidden="true" />
-                        {experience.company === "Deloitte" ? "queued" : "live"}
+                        {state}
                       </span>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 <p className="about-kernel-note">
@@ -311,7 +332,15 @@ export function AboutApp({ suspended = false }: Props) {
             {tab === "experience" && (
               <div className="about-timeline">
                 {experiences.map((e) => {
-                  const queued = e.company === "Deloitte"
+                  const isDeloitte = e.company === "Deloitte"
+                  const queued = isDeloitte && !started
+                  const bullets =
+                    isDeloitte
+                      ? [
+                          deloitteExperienceLead(clock),
+                          ...e.description.slice(1),
+                        ]
+                      : e.description
                   return (
                   <article key={e.id} className="about-exp-card">
                     <div className="about-exp-rail">
@@ -319,7 +348,7 @@ export function AboutApp({ suspended = false }: Props) {
                         className={
                           queued
                             ? "about-exp-dot queued"
-                            : e.current
+                            : e.current || (isDeloitte && started)
                               ? "about-exp-dot on"
                               : "about-exp-dot"
                         }
@@ -330,8 +359,8 @@ export function AboutApp({ suspended = false }: Props) {
                         <strong>{e.title}</strong>
                         <span className="about-exp-meta">
                           {e.company}
-                          {queued
-                            ? " · incoming"
+                          {isDeloitte
+                            ? deloitteStatusMeta(clock)
                             : e.current
                               ? " · now"
                               : e.endDate
@@ -340,7 +369,7 @@ export function AboutApp({ suspended = false }: Props) {
                         </span>
                       </header>
                       <ul>
-                        {e.description.map((line, i) => (
+                        {bullets.map((line, i) => (
                           <li key={i}>{line}</li>
                         ))}
                       </ul>

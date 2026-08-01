@@ -2,6 +2,13 @@ import Link from "next/link"
 import { defaultData } from "@/lib/default-data"
 import { OsStage } from "@/components/peteros/os-stage"
 import { ShanghaiDayProgress } from "@/components/shanghai-day-progress"
+import {
+  deloitteHeroPrefix,
+  deloitteStatusLabel,
+} from "@/lib/role"
+
+/** Re-check Deloitte “incoming” → live copy after the start date. */
+export const revalidate = 3600
 
 const FEATURED_EXPERIENCE_IDS = ["exp0", "res1", "exp1", "res2", "exp2"]
 
@@ -11,6 +18,7 @@ export default function Home() {
     const experience = experiences.find((item) => item.id === id)
     return experience ? [experience] : []
   })
+  const heroPrefix = deloitteHeroPrefix()
 
   return (
     <main className="home">
@@ -26,7 +34,7 @@ export default function Home() {
 
       <header className="home-hero">
         <h1 className="home-big">
-          Peter is joining{" "}
+          {heroPrefix}
           <a
             className="home-underline"
             href="https://www.deloitte.com"
@@ -34,7 +42,8 @@ export default function Home() {
             rel="noreferrer"
           >
             Deloitte
-          </a>.
+          </a>
+          .
         </h1>
       </header>
 
@@ -131,7 +140,7 @@ export default function Home() {
                     <span>{experience.type === "research" ? "Research" : "Work"}</span>
                     <span>
                       {experience.company === "Deloitte"
-                        ? "Incoming"
+                        ? deloitteStatusLabel()
                         : experience.current
                           ? "Now"
                           : experience.endDate.slice(0, 4)}

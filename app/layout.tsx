@@ -4,6 +4,9 @@ import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { TrafficTracker } from "@/components/traffic-tracker"
+import { deloitteMetadataDescription } from "@/lib/role"
+
+export const revalidate = 3600
 
 const inter = Inter({
   subsets: ["latin"],
@@ -27,8 +30,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata = {
   title: "Zhongquan Cheng — Analyst · Technology Transformation",
-  description:
-    "Zhongquan Cheng — Incoming Analyst 1 at Deloitte Technology Transformation in Shanghai. M.S. Computer Science at WashU. Backend engineering, applied ML, and PeterOS.",
+  description: deloitteMetadataDescription(),
 }
 
 export default function RootLayout({
