@@ -8,6 +8,7 @@ import {
   type PointerEvent as RE,
 } from "react"
 import dynamic from "next/dynamic"
+import { usePeterOSDesktop } from "./use-peteros-desktop"
 
 const loadPeterOS = () => import("./peter-os").then((module) => module.PeterOS)
 const LazyPeterOS = dynamic(loadPeterOS, {
@@ -146,6 +147,7 @@ function foldGeometry(P: Pt) {
 }
 
 export function OsStage({ defaultExpanded = false }: Props) {
+  const desktop = usePeterOSDesktop()
   const [open, setOpen] = useState(defaultExpanded)
   const [booted, setBooted] = useState(defaultExpanded)
   const [active, setActive] = useState(defaultExpanded) // peel in progress
@@ -247,6 +249,7 @@ export function OsStage({ defaultExpanded = false }: Props) {
 
   // Delegated open triggers ([data-open-peteros] buttons anywhere on the page)
   useEffect(() => {
+    if (!desktop) return
     const onClick = (e: MouseEvent) => {
       if ((e.target as HTMLElement | null)?.closest?.("[data-open-peteros]")) {
         e.preventDefault()
@@ -255,7 +258,21 @@ export function OsStage({ defaultExpanded = false }: Props) {
     }
     document.addEventListener("click", onClick)
     return () => document.removeEventListener("click", onClick)
-  }, [openOS])
+  }, [desktop, openOS])
+
+  // Shrink below desktop breakpoint → fully unload PeterOS
+  useEffect(() => {
+    if (desktop) return
+    stopAnim()
+    setOpen(false)
+    setActive(false)
+    setDragging(false)
+    setHover(false)
+    setBooted(false)
+    drag.current = null
+    delete document.documentElement.dataset.peterosOpen
+    document.body.style.overflow = ""
+  }, [desktop, stopAnim])
 
   // Esc to close + lock scroll while open
   useEffect(() => {
@@ -402,6 +419,9 @@ export function OsStage({ defaultExpanded = false }: Props) {
       }
     }
   }
+
+  // Mobile / narrow viewports: no peel chrome, no OS mount.
+  if (!desktop) return null
 
   // Render nothing geometry-dependent until mounted, so SSR and the first
   // client paint agree and real viewport dims drive the fold.

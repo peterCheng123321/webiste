@@ -61,7 +61,7 @@ export default function Home() {
               <span className="home-index-note">Enter</span>
             </div>
             <ul className="home-index-list home-index-actions">
-              <li>
+              <li className="peteros-desktop-only">
                 <button
                   type="button"
                   className="home-index-link home-text-btn"
@@ -71,11 +71,17 @@ export default function Home() {
                   <span className="home-index-sub">Interactive desktop</span>
                 </button>
               </li>
-              <li>
+              <li className="peteros-desktop-only">
                 <Link className="home-index-link" href="/os" prefetch={false}>
                   <span>Full desktop</span>
                   <span className="home-index-sub">Dedicated route</span>
                 </Link>
+              </li>
+              <li className="peteros-mobile-only" aria-hidden="false">
+                <span className="home-index-link home-index-link-static">
+                  <span>PeterOS</span>
+                  <span className="home-index-sub">Desktop screens only</span>
+                </span>
               </li>
               <li>
                 <a
@@ -186,9 +192,16 @@ export default function Home() {
           </ul>
         </div>
         <div className="home-footer-col home-footer-right">
-          <button type="button" className="home-text-btn" data-open-peteros>
+          <button
+            type="button"
+            className="home-text-btn peteros-desktop-only"
+            data-open-peteros
+          >
             Explore PeterOS
           </button>
+          <span className="home-footer-note peteros-mobile-only">
+            PeterOS · desktop only
+          </span>
         </div>
       </footer>
 
