@@ -24,6 +24,7 @@ import { AppIcon } from "./app-icon"
 import { Dock } from "./dock"
 import { MenuBar } from "./menu-bar"
 import { PeterOSContext, type IconAppearance } from "./context"
+import { track } from "@/lib/track"
 
 type Mode = "embedded" | "fullscreen" | "page"
 
@@ -151,6 +152,7 @@ export function PeterOS({ mode = "embedded", onExpand, onCloseExpand }: Props) {
   const openApp = useCallback((appId: AppId | string) => {
     if (!isAppId(appId)) return
     const id = appId
+    track("peteros_app_open", { app: id })
 
     setActiveApp(id)
     setZTop((z) => {

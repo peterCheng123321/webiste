@@ -2,6 +2,7 @@
 
 import React, { useState } from "react"
 import { ArrowUpRight } from "lucide-react"
+import { track } from "@/lib/track"
 
 /**
  * Contact form that composes a pre-filled message in the visitor's own email
@@ -21,6 +22,10 @@ export function ContactForm({ email }: { email: string }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    track("cta_contact_submit", {
+      has_name: formData.name.trim() ? "true" : "false",
+      has_message: formData.message.trim() ? "true" : "false",
+    })
     const subject = `Portfolio inquiry from ${formData.name || "a visitor"}`
     const body = `${formData.message}\n\n— ${formData.name}${
       formData.email ? ` <${formData.email}>` : ""
