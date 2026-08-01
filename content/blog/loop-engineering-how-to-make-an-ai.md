@@ -27,8 +27,7 @@ So across that boundary, exactly two things carry state: the prompt text, and wh
 
 The fix is one file — call it progress.md — that the loop reads first and updates last, every iteration. Its header pins down the loop: a goal, an exit_condition that is a machine-checkable end state, a completion_promise that is the exact string which ends the loop, a status, an iteration count against a max_iterations ceiling, a stall_count of consecutive no-progress iterations, and a verify_cmd that proves a step or the goal.
 
-```
-
+```markdown
 ---
 goal: make the JS test suite pass
 exit_condition: `npm test` exits 0

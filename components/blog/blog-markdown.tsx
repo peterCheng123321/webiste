@@ -1,49 +1,27 @@
-"use client"
-
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import { track } from "@/lib/track"
+import { renderMarkdown } from "@/lib/markdown"
+import { BlogToc } from "./blog-toc"
 
 type Props = {
   content: string
   slug: string
+  showToc?: boolean
 }
 
-export function BlogMarkdown({ content, slug }: Props) {
+/**
+ * Server-rendered markdown: GFM, smart punctuation, Shiki code blocks,
+ * heading anchors, external-link safety, optional TOC.
+ */
+export async function BlogMarkdown({ content, slug, showToc = true }: Props) {
+  const { html, headings } = await renderMarkdown(content)
+
   return (
-    <div className="blog-prose">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          a: ({ href, children }) => {
-            const external = Boolean(href && /^https?:\/\//i.test(href))
-            return (
-              <a
-                href={href}
-                target={external ? "_blank" : undefined}
-                rel={external ? "noreferrer" : undefined}
-                onClick={() => {
-                  if (external && href) {
-                    try {
-                      const u = new URL(href)
-                      track("blog_outbound", {
-                        slug,
-                        host: u.hostname,
-                      })
-                    } catch {
-                      /* ignore */
-                    }
-                  }
-                }}
-              >
-                {children}
-              </a>
-            )
-          },
-        }}
-      >
-        {content}
-      </ReactMarkdown>
+    <div className="blog-md" data-slug={slug}>
+      {showToc && headings.length >= 2 ? <BlogToc headings={headings} /> : null}
+      <div
+        className="blog-prose"
+        // HTML is produced by our rehype pipeline + sanitize step.
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
     </div>
   )
 }

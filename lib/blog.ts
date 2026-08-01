@@ -1,17 +1,14 @@
 import fs from "fs"
 import path from "path"
-import matter from "gray-matter"
+import {
+  parseMarkdownDocument,
+  readingMinutes,
+  type MarkdownFrontmatter,
+} from "@/lib/markdown"
 
 const BLOG_DIR = path.join(process.cwd(), "content/blog")
 
-export type BlogFrontmatter = {
-  title: string
-  description?: string
-  date: string
-  updated?: string
-  tags?: string[]
-  draft?: boolean
-}
+export type BlogFrontmatter = MarkdownFrontmatter
 
 export type BlogPostMeta = BlogFrontmatter & {
   slug: string
@@ -23,53 +20,23 @@ export type BlogPost = BlogPostMeta & {
 }
 
 function ensureDir() {
-  if (!fs.existsSync(BLOG_DIR)) return false
-  return true
-}
-
-function readingMinutes(text: string) {
-  const words = text.trim().split(/\s+/).filter(Boolean).length
-  return Math.max(1, Math.round(words / 220))
-}
-
-function toIsoDate(value: unknown): string {
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toISOString().slice(0, 10)
-  }
-  if (typeof value === "string" && value.trim()) {
-    // YAML may give "2026-03-02" or a full ISO string
-    return value.slice(0, 10)
-  }
-  return ""
+  return fs.existsSync(BLOG_DIR)
 }
 
 function parseFile(filename: string, includeDrafts = false): BlogPost | null {
   const full = path.join(BLOG_DIR, filename)
   const raw = fs.readFileSync(full, "utf8")
-  const { data, content } = matter(raw)
-  const fm = data as BlogFrontmatter
-
-  const date = toIsoDate(fm.date)
-  if (!fm.title || !date) return null
-  if (fm.draft && !includeDrafts) return null
+  const doc = parseMarkdownDocument(raw)
+  if (!doc) return null
+  if (doc.frontmatter.draft && !includeDrafts) return null
 
   const slug = filename.replace(/\.mdx?$/, "")
-  const tags = Array.isArray(fm.tags)
-    ? fm.tags.map(String)
-    : fm.tags
-      ? [String(fm.tags)]
-      : []
 
   return {
     slug,
-    title: String(fm.title),
-    description: fm.description ? String(fm.description) : "",
-    date,
-    updated: fm.updated ? toIsoDate(fm.updated) : undefined,
-    tags,
-    draft: Boolean(fm.draft),
-    content: content.trim(),
-    readingMinutes: readingMinutes(content),
+    ...doc.frontmatter,
+    content: doc.content,
+    readingMinutes: readingMinutes(doc.content),
   }
 }
 

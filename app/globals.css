@@ -6868,3 +6868,117 @@ html[data-peteros-open="true"] .home-ambient::before {
     font-size: 1.5rem;
   }
 }
+
+/* ═══════════════════════════════════════════
+   Markdown system extras (TOC, code, anchors)
+   ═══════════════════════════════════════════ */
+
+.blog-md {
+  display: block;
+}
+
+.blog-toc {
+  margin: 0 0 1.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #f6f8fa;
+}
+
+.blog-toc-label {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #656d76;
+}
+
+.blog-toc-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.blog-toc-item {
+  margin: 0.3rem 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.blog-toc-item a {
+  color: #0969da;
+  text-decoration: none;
+}
+
+.blog-toc-item a:hover {
+  text-decoration: underline;
+}
+
+.blog-toc-item-h3 {
+  padding-left: 1rem;
+  font-size: 13px;
+}
+
+.blog-heading-link {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+.blog-heading-link:hover {
+  text-decoration: underline !important;
+}
+
+/* rehype-pretty-code / Shiki */
+.blog-prose pre {
+  position: relative;
+  overflow-x: auto;
+}
+
+.blog-prose pre [data-line] {
+  padding: 0 0.25rem;
+  display: inline-block;
+  width: 100%;
+}
+
+.blog-prose pre code {
+  display: grid;
+  background: transparent;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.blog-prose figure[data-rehype-pretty-code-figure] {
+  margin: 0 0 1.25rem;
+}
+
+.blog-prose figure[data-rehype-pretty-code-figure] pre {
+  margin: 0;
+}
+
+.blog-prose [data-rehype-pretty-code-title] {
+  margin: 0;
+  padding: 0.5rem 0.85rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+  color: #656d76;
+  background: #eef1f4;
+  border: 1px solid #d0d7de;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+}
+
+.blog-prose [data-rehype-pretty-code-title] + pre {
+  border-radius: 0 0 6px 6px;
+}
+
+/* GFM task lists */
+.blog-prose input[type="checkbox"] {
+  margin-right: 0.4rem;
+}
+
+.blog-prose li:has(> input[type="checkbox"]) {
+  list-style: none;
+  margin-left: -1.25rem;
+}

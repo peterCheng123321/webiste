@@ -39,7 +39,29 @@ export function BlogReadingTracker({ slug, title }: Props) {
 
     onScroll()
     window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
+
+    const onClick = (event: MouseEvent) => {
+      const anchor = (event.target as HTMLElement | null)?.closest?.(
+        ".blog-prose a[href]",
+      ) as HTMLAnchorElement | null
+      if (!anchor) return
+      const href = anchor.getAttribute("href") || ""
+      if (!/^https?:\/\//i.test(href)) return
+      try {
+        const u = new URL(href)
+        if (u.origin !== window.location.origin) {
+          track("blog_outbound", { slug, host: u.hostname })
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    document.addEventListener("click", onClick, { capture: true })
+
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+      document.removeEventListener("click", onClick, { capture: true })
+    }
   }, [slug, title])
 
   return null
