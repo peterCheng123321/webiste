@@ -1,14 +1,31 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import {
+  useMemo,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react"
 import { defaultData, type Project } from "@/lib/default-data"
-import { ProjectDiagram } from "@/components/project-diagram"
+import { AppIcon, type IconId } from "../app-icon"
+import { usePeterOS } from "../context"
 
-const TOY_FOR: Record<string, string> = {
+const ICON_FOR: Record<string, IconId> = {
   scheduler: "scheduler",
   ats: "ats",
   imu: "sensor",
-  vr: "segment",
+  vr: "projects",
+}
+
+const TOY_FOR: Record<string, IconId> = {
+  scheduler: "scheduler",
+  ats: "ats",
+  imu: "sensor",
+}
+
+const TOY_LABEL: Record<string, string> = {
+  scheduler: "Scheduler",
+  ats: "ATS Lab",
+  imu: "IMU Lab",
 }
 
 type Props = {
@@ -16,6 +33,7 @@ type Props = {
 }
 
 export function ProjectsApp({ onOpenApp }: Props) {
+  const { appearance, isAppOpen } = usePeterOS()
   const projects = defaultData.projects
   const [activeId, setActiveId] = useState(projects[0]?.id ?? "")
   const [filter, setFilter] = useState<string>("all")
@@ -32,14 +50,40 @@ export function ProjectsApp({ onOpenApp }: Props) {
   const active: Project | undefined =
     list.find((p) => p.id === activeId) ?? list[0] ?? projects[0]
 
+  const onProjectKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    projectId: string,
+  ) => {
+    const options = Array.from(
+      event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+        '[role="option"]',
+      ) ?? [],
+    )
+    const current = options.indexOf(event.currentTarget)
+    if (current < 0) return
+
+    let next = current
+    if (event.key === "ArrowDown") next = Math.min(options.length - 1, current + 1)
+    else if (event.key === "ArrowUp") next = Math.max(0, current - 1)
+    else if (event.key === "Home") next = 0
+    else if (event.key === "End") next = options.length - 1
+    else return
+
+    event.preventDefault()
+    const option = options[next]
+    option?.focus()
+    setActiveId(option?.dataset.projectId ?? projectId)
+  }
+
   return (
     <div className="mac-app projects-app">
-      <div className="mac-toolbar projects-filters">
+      <div className="mac-toolbar projects-filters" role="group" aria-label="Filter projects by technology">
         {tags.map((t) => (
           <button
             key={t}
             type="button"
             className={filter === t ? "mac-seg active" : "mac-seg"}
+            aria-pressed={filter === t}
             onClick={() => setFilter(t)}
           >
             {t === "all" ? "All" : t}
@@ -48,18 +92,28 @@ export function ProjectsApp({ onOpenApp }: Props) {
       </div>
 
       <div className="projects-split">
-        <div className="projects-list" role="list">
+        <div className="projects-list" role="listbox" aria-label="Projects" aria-controls="projects-detail-panel">
           {list.map((p) => (
             <button
               key={p.id}
               type="button"
-              role="listitem"
+              role="option"
+              aria-selected={active?.id === p.id}
+              aria-controls="projects-detail-panel"
+              data-project-id={p.id}
+              tabIndex={active?.id === p.id ? 0 : -1}
               className={active?.id === p.id ? "projects-row active" : "projects-row"}
               onClick={() => setActiveId(p.id)}
+              onKeyDown={(event) => onProjectKeyDown(event, p.id)}
             >
               <div className="projects-thumb">
-                {p.diagram ? (
-                  <ProjectDiagram kind={p.diagram} />
+                {p.diagram && ICON_FOR[p.diagram] ? (
+                  <AppIcon
+                    id={ICON_FOR[p.diagram]}
+                    size={48}
+                    appearance={appearance}
+                    open={isAppOpen(ICON_FOR[p.diagram])}
+                  />
                 ) : (
                   <span className="projects-thumb-fallback">{p.title[0]}</span>
                 )}
@@ -76,10 +130,20 @@ export function ProjectsApp({ onOpenApp }: Props) {
         </div>
 
         {active && (
-          <div className="projects-detail">
+          <div
+            className="projects-detail"
+            id="projects-detail-panel"
+            role="region"
+            aria-label={`${active.title} details`}
+          >
             <div className="projects-detail-visual">
-              {active.diagram ? (
-                <ProjectDiagram kind={active.diagram} />
+              {active.diagram && ICON_FOR[active.diagram] ? (
+                <AppIcon
+                  id={ICON_FOR[active.diagram]}
+                  size={104}
+                  appearance={appearance}
+                  open={isAppOpen(ICON_FOR[active.diagram])}
+                />
               ) : (
                 <div className="projects-detail-empty">No diagram</div>
               )}
@@ -99,7 +163,7 @@ export function ProjectsApp({ onOpenApp }: Props) {
                   className="mac-btn primary"
                   onClick={() => onOpenApp(TOY_FOR[active.diagram!])}
                 >
-                  Open related toy
+                  Open {TOY_LABEL[active.diagram!]}
                 </button>
               )}
               {active.repoUrl && (
@@ -115,6 +179,10 @@ export function ProjectsApp({ onOpenApp }: Props) {
             </div>
           </div>
         )}
+      </div>
+      <div className="projects-statusbar" role="status">
+        <span>{list.length} {list.length === 1 ? "project" : "projects"}</span>
+        <span>{filter === "all" ? "All technologies" : `Filtered by ${filter}`}</span>
       </div>
     </div>
   )

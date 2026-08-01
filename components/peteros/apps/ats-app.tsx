@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 const KEYWORDS = [
   { k: "python", w: 8 },
@@ -26,59 +26,98 @@ Cut API latency 45% and shipped REST endpoints on AWS.`
 
 const STAGES = ["Ingest", "Parse", "Keywords", "Score", "Route"] as const
 
+function matchesKeyword(text: string, keyword: string) {
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const normalized = escaped.replace(/\\ /g, "\\s+")
+  const variant =
+    keyword === "postgres"
+      ? "postgres(?:ql)?"
+      : keyword === "node"
+        ? "node(?:\\.js)?"
+        : normalized
+  return new RegExp(`\\b${variant}\\b`, "i").test(text)
+}
+
 export function AtsApp() {
   const [text, setText] = useState(SAMPLE)
   const [stage, setStage] = useState(-1)
   const [score, setScore] = useState(0)
-  const [done, setDone] = useState(false)
+  const [scanState, setScanState] = useState<"idle" | "running" | "done">("idle")
+  const timersRef = useRef<number[]>([])
 
   const analysis = useMemo(() => {
-    const lower = text.toLowerCase()
-    const hits = KEYWORDS.filter((x) => lower.includes(x.k))
+    const hits = KEYWORDS.filter((x) => matchesKeyword(text, x.k))
     const raw = hits.reduce((a, h) => a + h.w, 0)
     const max = KEYWORDS.reduce((a, h) => a + h.w, 0)
     const pct = Math.min(99, Math.round((raw / max) * 100 + (text.length > 120 ? 5 : 0)))
     return { hits, pct }
   }, [text])
 
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach((timer) => window.clearTimeout(timer))
+    timersRef.current = []
+  }, [])
+
+  useEffect(() => clearTimers, [clearTimers])
+
+  const reset = useCallback(() => {
+    clearTimers()
+    setScanState("idle")
+    setScore(0)
+    setStage(-1)
+  }, [clearTimers])
+
   const run = () => {
-    setDone(false)
+    clearTimers()
+    setScanState("running")
     setScore(0)
     setStage(0)
-    let s = 0
-    const tick = () => {
-      if (s < STAGES.length) {
-        setStage(s)
-        setScore(Math.round((analysis.pct * (s + 1)) / STAGES.length))
-        s++
-        setTimeout(tick, 280)
-      } else {
+
+    STAGES.forEach((_, index) => {
+      const timer = window.setTimeout(() => {
+        setStage(index)
+        setScore(Math.round((analysis.pct * (index + 1)) / STAGES.length))
+      }, index * 280)
+      timersRef.current.push(timer)
+    })
+
+    timersRef.current.push(
+      window.setTimeout(() => {
         setScore(analysis.pct)
-        setDone(true)
-        setStage(STAGES.length - 1)
-      }
-    }
-    tick()
+        setStage(STAGES.length)
+        setScanState("done")
+      }, STAGES.length * 280),
+    )
   }
 
   return (
     <div className="mac-app ats-app">
-      <div className="ats-top">
-        <div>
-          <h2>ATS Lab</h2>
-          <p>Toy from Application Tracker · keyword triage pipeline</p>
+      <div className="ats-top ats-commandbar">
+        <div className="ats-command-copy">
+          <span>Keyword triage</span>
+          <strong>{scanState === "running" ? STAGES[Math.min(stage, STAGES.length - 1)] : scanState === "done" ? "Scan complete" : "Ready"}</strong>
         </div>
-        <button type="button" className="mac-btn primary" onClick={run}>
-          Run scan
+        <button
+          type="button"
+          className="mac-btn primary"
+          onClick={run}
+          disabled={scanState === "running" || text.trim().length === 0}
+          data-window-focus
+        >
+          {scanState === "running" ? "Scanning…" : scanState === "done" ? "Scan again" : "Run scan"}
         </button>
       </div>
 
-      <div className="ats-pipeline">
+      <div className="ats-pipeline" aria-label="Scan pipeline" aria-busy={scanState === "running"}>
         {STAGES.map((name, i) => (
           <div
             key={name}
             className={
-              stage > i ? "ats-stage done" : stage === i ? "ats-stage active" : "ats-stage"
+              scanState === "done" || stage > i
+                ? "ats-stage done"
+                : stage === i
+                  ? "ats-stage active"
+                  : "ats-stage"
             }
           >
             <span className="ats-stage-num">{i + 1}</span>
@@ -95,39 +134,42 @@ export function AtsApp() {
             value={text}
             onChange={(e) => {
               setText(e.target.value)
-              setDone(false)
-              setStage(-1)
-              setScore(0)
+              reset()
             }}
             rows={8}
             spellCheck={false}
           />
-          <div className="ats-drop-hint">Tip: paste a cover letter or LinkedIn about</div>
+          <div className="ats-input-meta">
+            <span>Paste a cover letter or LinkedIn About</span>
+            <span>{text.length} characters</span>
+          </div>
         </div>
 
         <div className="ats-result-col">
-          <div className="ats-meter-ring">
-            <svg viewBox="0 0 100 100" className="ats-ring">
-              <circle cx="50" cy="50" r="40" className="ats-ring-bg" />
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                className="ats-ring-fg"
-                style={{
-                  strokeDasharray: `${(score / 100) * 251} 251`,
-                }}
-              />
-            </svg>
-            <div className="ats-ring-label">
-              <strong>{stage >= 0 ? score : "—"}</strong>
-              <span>match</span>
-            </div>
+          <div className="ats-score-card">
+            <span>Match score</span>
+            <strong>{stage >= 0 ? `${score}%` : "—"}</strong>
+            <progress max={100} value={score} aria-label="Application match score">
+              {score}%
+            </progress>
+            <small>Portfolio demo · heuristic keyword weighting</small>
           </div>
 
-          {done && (
+          {scanState === "idle" && (
+            <div className="ats-idle">
+              Ready to scan. Results stay local to this window.
+            </div>
+          )}
+
+          {scanState === "running" && (
+            <div className="ats-idle" role="status" aria-live="polite">
+              Running {STAGES[Math.min(stage, STAGES.length - 1)]}…
+            </div>
+          )}
+
+          {scanState === "done" && (
             <>
-              <div className="ats-verdict">
+              <div className="ats-verdict" role="status" aria-live="polite">
                 {analysis.pct >= 70
                   ? "Strong match — ship it."
                   : analysis.pct >= 40

@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "PeterOS — Zhongquan Cheng",
-  description: "A tiny desktop on the web — About, Projects, Resume, Finder, Terminal.",
+  description: "Peter's interactive desktop — custom icons, working windows, Finder, Terminal, projects, and labs.",
 }
 
 export default function OsPage() {

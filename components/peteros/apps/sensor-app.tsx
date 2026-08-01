@@ -1,11 +1,45 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react"
 
 const W = 400
 const H = 120
+const FRAME_MS = 1000 / 60
 
-export function SensorApp() {
+type Telemetry = {
+  mag: number
+  label: "idle" | "motion" | "active"
+  peak: number
+  samples: number
+}
+
+function pushSample(buffer: number[], value: number) {
+  buffer.push(Math.max(4, Math.min(H - 4, value + (Math.random() - 0.5) * 1.5)))
+  if (buffer.length > W) buffer.shift()
+}
+
+function strokeSignal(
+  ctx: CanvasRenderingContext2D,
+  buffer: number[],
+  color: string,
+) {
+  ctx.strokeStyle = color
+  ctx.lineWidth = 1.6
+  ctx.beginPath()
+  buffer.forEach((y, x) => (x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)))
+  ctx.stroke()
+}
+
+type Props = {
+  suspended?: boolean
+}
+
+export function SensorApp({ suspended = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const bufX = useRef<number[]>(Array(W).fill(H / 2))
   const bufY = useRef<number[]>(Array(W).fill(H / 2))
@@ -13,34 +47,38 @@ export function SensorApp() {
   const target = useRef({ x: H / 2, y: H / 2, z: H / 2 })
   const [mode, setMode] = useState<"mouse" | "motion">("mouse")
   const [running, setRunning] = useState(true)
-  const [mag, setMag] = useState(0)
-  const [label, setLabel] = useState<"idle" | "motion" | "active">("idle")
-  const [peak, setPeak] = useState(0)
-  const runningRef = useRef(true)
+  const [telemetry, setTelemetry] = useState<Telemetry>({
+    mag: 0,
+    label: "idle",
+    peak: 0,
+    samples: 0,
+  })
+  const [deviceStatus, setDeviceStatus] = useState<
+    "idle" | "requesting" | "live" | "denied" | "unavailable"
+  >("idle")
+  const peakRef = useRef(0)
+  const sampleCountRef = useRef(0)
 
   useEffect(() => {
-    runningRef.current = running
-  }, [running])
-
-  useEffect(() => {
+    if (suspended || !running) return
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext("2d")
     if (!ctx) return
     let raf = 0
-    let peakLocal = 0
+    let lastFrame = 0
+    let lastPublish = 0
 
-    const draw = () => {
-      if (runningRef.current) {
-        const t = target.current
-        const push = (buf: number[], v: number) => {
-          buf.push(Math.max(4, Math.min(H - 4, v + (Math.random() - 0.5) * 1.5)))
-          if (buf.length > W) buf.shift()
-        }
-        push(bufX.current, t.x)
-        push(bufY.current, t.y)
-        push(bufZ.current, t.z)
+    const draw = (now: number) => {
+      if (now - lastFrame < FRAME_MS * 0.85) {
+        raf = requestAnimationFrame(draw)
+        return
       }
+      lastFrame = now
+      const t = target.current
+      pushSample(bufX.current, t.x)
+      pushSample(bufY.current, t.y)
+      pushSample(bufZ.current, t.z)
 
       ctx.fillStyle = "#0b0f14"
       ctx.fillRect(0, 0, W, H)
@@ -52,53 +90,36 @@ export function SensorApp() {
       }
       ctx.stroke()
 
-      const stroke = (buf: number[], color: string) => {
-        ctx.strokeStyle = color
-        ctx.lineWidth = 1.6
-        ctx.beginPath()
-        buf.forEach((y, x) => (x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)))
-        ctx.stroke()
-      }
-      stroke(bufX.current, "#ff6b6b")
-      stroke(bufY.current, "#4ecdc4")
-      stroke(bufZ.current, "#ffe66d")
+      strokeSignal(ctx, bufX.current, "#ff6b6b")
+      strokeSignal(ctx, bufY.current, "#4ecdc4")
+      strokeSignal(ctx, bufZ.current, "#ffe66d")
 
       const last =
         Math.abs((bufX.current.at(-1) ?? H / 2) - H / 2) +
         Math.abs((bufY.current.at(-1) ?? H / 2) - H / 2) +
         Math.abs((bufZ.current.at(-1) ?? H / 2) - H / 2)
       const m = Math.min(100, Math.round((last / (H * 1.2)) * 100))
-      peakLocal = Math.max(peakLocal * 0.995, m)
-      setMag(m)
-      setPeak(Math.round(peakLocal))
-      setLabel(m > 55 ? "active" : m > 22 ? "motion" : "idle")
+      peakRef.current = Math.max(peakRef.current * 0.995, m)
+      sampleCountRef.current++
+      if (now - lastPublish >= 100) {
+        lastPublish = now
+        setTelemetry({
+          mag: m,
+          peak: Math.round(peakRef.current),
+          samples: sampleCountRef.current,
+          label: m > 55 ? "active" : m > 22 ? "motion" : "idle",
+        })
+      }
 
       raf = requestAnimationFrame(draw)
     }
     raf = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf)
-  }, [])
+  }, [running, suspended])
 
   useEffect(() => {
-    if (mode !== "mouse") return
-    const onMove = (e: MouseEvent) => {
-      const c = canvasRef.current
-      if (!c) return
-      const r = c.getBoundingClientRect()
-      const nx = ((e.clientX - r.left) / r.width) * H
-      const ny = ((e.clientY - r.top) / r.height) * H
-      target.current = {
-        x: Math.max(4, Math.min(H - 4, nx)),
-        y: Math.max(4, Math.min(H - 4, ny)),
-        z: Math.max(4, Math.min(H - 4, (nx + ny) / 2)),
-      }
-    }
-    window.addEventListener("mousemove", onMove)
-    return () => window.removeEventListener("mousemove", onMove)
-  }, [mode])
-
-  useEffect(() => {
-    if (mode !== "motion") return
+    if (suspended) return
+    if (mode !== "motion" || deviceStatus !== "live") return
     const handler = (e: DeviceMotionEvent) => {
       const a = e.accelerationIncludingGravity
       if (!a) return
@@ -110,29 +131,89 @@ export function SensorApp() {
     }
     window.addEventListener("devicemotion", handler)
     return () => window.removeEventListener("devicemotion", handler)
-  }, [mode])
+  }, [deviceStatus, mode, suspended])
+
+  const enableDevice = async () => {
+    if (typeof DeviceMotionEvent === "undefined") {
+      setDeviceStatus("unavailable")
+      return
+    }
+
+    setDeviceStatus("requesting")
+    const motionEvent = DeviceMotionEvent as typeof DeviceMotionEvent & {
+      requestPermission?: () => Promise<"granted" | "denied">
+    }
+    try {
+      const permission = motionEvent.requestPermission
+        ? await motionEvent.requestPermission()
+        : "granted"
+      if (permission !== "granted") {
+        setDeviceStatus("denied")
+        return
+      }
+      setMode("motion")
+      setDeviceStatus("live")
+    } catch {
+      setDeviceStatus("denied")
+    }
+  }
+
+  const usePointer = () => {
+    setMode("mouse")
+    setDeviceStatus("idle")
+  }
+
+  const resetPeak = () => {
+    peakRef.current = 0
+    setTelemetry((current) => ({ ...current, peak: 0 }))
+  }
+
+  const updatePointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (mode !== "mouse") return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const nx = ((event.clientX - rect.left) / rect.width) * H
+    const ny = ((event.clientY - rect.top) / rect.height) * H
+    target.current = {
+      x: Math.max(4, Math.min(H - 4, nx)),
+      y: Math.max(4, Math.min(H - 4, ny)),
+      z: Math.max(4, Math.min(H - 4, (nx + ny) / 2)),
+    }
+  }
+
+  const sourceStatus =
+    deviceStatus === "denied"
+      ? "Device permission denied · using Pointer"
+      : deviceStatus === "unavailable"
+        ? "Device motion unavailable · using Pointer"
+        : mode === "motion"
+          ? "Device motion connected"
+          : "Move the pointer over the scope"
+  const { mag, label, peak, samples } = telemetry
 
   return (
     <div className="mac-app sensor-app">
-      <div className="sensor-top">
-        <div>
-          <h2>IMU Lab</h2>
-          <p>Toy from sensor pipelines · 3-axis scope</p>
+      <div className="sensor-top sensor-commandbar">
+        <div className="sensor-command-copy">
+          <span>3-axis stream</span>
+          <strong>{running ? `${mode === "motion" ? "Device" : "Pointer"} source · live` : "Capture paused"}</strong>
         </div>
         <div className="sensor-controls">
           <button
             type="button"
             className={mode === "mouse" ? "mac-seg active" : "mac-seg"}
-            onClick={() => setMode("mouse")}
+            aria-pressed={mode === "mouse"}
+            onClick={usePointer}
           >
-            Mouse
+            Pointer
           </button>
           <button
             type="button"
             className={mode === "motion" ? "mac-seg active" : "mac-seg"}
-            onClick={() => setMode("motion")}
+            aria-pressed={mode === "motion"}
+            onClick={enableDevice}
+            disabled={deviceStatus === "requesting"}
           >
-            Device
+            {deviceStatus === "requesting" ? "Requesting…" : "Device"}
           </button>
           <button
             type="button"
@@ -141,10 +222,22 @@ export function SensorApp() {
           >
             {running ? "Pause" : "Resume"}
           </button>
+          <button type="button" className="mac-btn" onClick={resetPeak} disabled={peak === 0}>
+            Reset peak
+          </button>
         </div>
       </div>
 
-      <canvas ref={canvasRef} width={W} height={H} className="sensor-canvas" />
+      <canvas
+        ref={canvasRef}
+        width={W}
+        height={H}
+        className="sensor-canvas"
+        role="img"
+        aria-label="Live X, Y, and Z motion signal plot"
+        onPointerDown={updatePointer}
+        onPointerMove={updatePointer}
+      />
 
       <div className="sensor-legend">
         <span className="x">X</span>
@@ -173,6 +266,11 @@ export function SensorApp() {
           <small>idle / motion / active · demo only</small>
         </div>
       </div>
+      <div className="sensor-statusbar" aria-label="Sensor capture status">
+        <span>{samples.toLocaleString()} samples · 60 Hz signal / 10 Hz UI</span>
+        <span>{sourceStatus}</span>
+      </div>
+      <span className="sr-only" aria-live="polite">{sourceStatus}</span>
     </div>
   )
 }

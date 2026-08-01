@@ -1,6 +1,13 @@
 "use client"
 
-import { useCallback, useRef, useState, type PointerEvent as RE } from "react"
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as RE,
+} from "react"
 
 type Mask = {
   id: number
@@ -22,8 +29,42 @@ export function SegmentApp() {
   const [selected, setSelected] = useState<number | null>(1)
   const [tool, setTool] = useState<"add" | "move">("add")
   const [opacity, setOpacity] = useState(0.4)
-  const drag = useRef<{ id: number; ox: number; oy: number } | null>(null)
+  const drag = useRef<{
+    id: number
+    ox: number
+    oy: number
+    pointerId: number
+    width: number
+    height: number
+  } | null>(null)
+  const dragFrame = useRef(0)
+  const pendingDrag = useRef<{ id: number; dx: number; dy: number } | null>(null)
   const idRef = useRef(3)
+
+  const flushDrag = useCallback(() => {
+    dragFrame.current = 0
+    const pending = pendingDrag.current
+    pendingDrag.current = null
+    if (!pending) return
+    setMasks((list) =>
+      list.map((mask) =>
+        mask.id === pending.id
+          ? {
+              ...mask,
+              x: Math.max(mask.r, Math.min(100 - mask.r, mask.x + pending.dx)),
+              y: Math.max(mask.r, Math.min(100 - mask.r, mask.y + pending.dy)),
+            }
+          : mask,
+      ),
+    )
+  }, [])
+
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(dragFrame.current)
+    },
+    [],
+  )
 
   const addAt = (clientX: number, clientY: number) => {
     const el = stageRef.current
@@ -32,11 +73,12 @@ export function SegmentApp() {
     const x = ((clientX - rect.left) / rect.width) * 100
     const y = ((clientY - rect.top) / rect.height) * 100
     const id = idRef.current++
+    const r = 10 + Math.random() * 10
     const mask: Mask = {
       id,
-      x,
-      y,
-      r: 10 + Math.random() * 10,
+      x: Math.max(r, Math.min(100 - r, x)),
+      y: Math.max(r, Math.min(100 - r, y)),
+      r,
       hue: Math.floor(Math.random() * 360),
       label: LABELS[masks.length % LABELS.length],
     }
@@ -45,53 +87,105 @@ export function SegmentApp() {
   }
 
   const onPointerDown = (e: RE) => {
+    if (!e.isPrimary || e.button !== 0) return
+    const target = (e.target as HTMLElement).closest("[data-mask-id]") as HTMLElement | null
+    if (target) {
+      const id = Number(target.dataset.maskId)
+      const m = masks.find((item) => item.id === id)
+      if (!m) return
+      setSelected(id)
+      if (tool === "move") {
+        const rect = stageRef.current?.getBoundingClientRect()
+        if (!rect) return
+        drag.current = {
+          id,
+          ox: e.clientX,
+          oy: e.clientY,
+          pointerId: e.pointerId,
+          width: rect.width,
+          height: rect.height,
+        }
+        ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+      }
+      return
+    }
     if (tool === "add") {
       addAt(e.clientX, e.clientY)
       return
     }
-    const target = (e.target as HTMLElement).closest("[data-mask-id]") as HTMLElement | null
-    if (!target) return
-    const id = Number(target.dataset.maskId)
-    const m = masks.find((x) => x.id === id)
-    if (!m) return
-    setSelected(id)
-    drag.current = { id, ox: e.clientX, oy: e.clientY }
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   }
 
   const onPointerMove = (e: RE) => {
     const d = drag.current
-    if (!d || !stageRef.current) return
-    const rect = stageRef.current.getBoundingClientRect()
-    const dx = ((e.clientX - d.ox) / rect.width) * 100
-    const dy = ((e.clientY - d.oy) / rect.height) * 100
+    if (!d || d.pointerId !== e.pointerId) return
+    const dx = ((e.clientX - d.ox) / d.width) * 100
+    const dy = ((e.clientY - d.oy) / d.height) * 100
     d.ox = e.clientX
     d.oy = e.clientY
-    setMasks((list) =>
-      list.map((m) =>
-        m.id === d.id
-          ? {
-              ...m,
-              x: Math.max(5, Math.min(95, m.x + dx)),
-              y: Math.max(5, Math.min(95, m.y + dy)),
-            }
-          : m
-      )
-    )
+    const pending = pendingDrag.current
+    pendingDrag.current =
+      pending?.id === d.id
+        ? { id: d.id, dx: pending.dx + dx, dy: pending.dy + dy }
+        : { id: d.id, dx, dy }
+    if (!dragFrame.current) dragFrame.current = requestAnimationFrame(flushDrag)
   }
 
-  const onPointerUp = () => {
+  const onPointerUp = (event: RE) => {
+    if (drag.current && drag.current.pointerId !== event.pointerId) return
+    if (dragFrame.current) {
+      cancelAnimationFrame(dragFrame.current)
+      flushDrag()
+    }
     drag.current = null
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    } catch {
+      /* capture may already be released */
+    }
   }
 
   const autoSeg = useCallback(() => {
-    setMasks([
+    const next = [
       { id: idRef.current++, x: 38, y: 42, r: 20, hue: 190, label: "torso" },
       { id: idRef.current++, x: 58, y: 38, r: 12, hue: 40, label: "head" },
       { id: idRef.current++, x: 30, y: 68, r: 11, hue: 140, label: "limb" },
       { id: idRef.current++, x: 68, y: 66, r: 11, hue: 300, label: "limb" },
-    ])
+    ]
+    setMasks(next)
+    setSelected(next[0]?.id ?? null)
   }, [])
+
+  const onMaskKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    mask: Mask,
+  ) => {
+    const delta = event.shiftKey ? 2 : 0.5
+    let dx = 0
+    let dy = 0
+    if (event.key === "ArrowLeft") dx = -delta
+    else if (event.key === "ArrowRight") dx = delta
+    else if (event.key === "ArrowUp") dy = -delta
+    else if (event.key === "ArrowDown") dy = delta
+    else if (event.key === "Delete" || event.key === "Backspace") {
+      event.preventDefault()
+      setMasks((current) => current.filter((item) => item.id !== mask.id))
+      setSelected(null)
+      return
+    } else return
+
+    event.preventDefault()
+    setMasks((current) =>
+      current.map((item) =>
+        item.id === mask.id
+          ? {
+              ...item,
+              x: Math.max(item.r, Math.min(100 - item.r, item.x + dx)),
+              y: Math.max(item.r, Math.min(100 - item.r, item.y + dy)),
+            }
+          : item,
+      ),
+    )
+  }
 
   const sel = masks.find((m) => m.id === selected)
 
@@ -102,6 +196,7 @@ export function SegmentApp() {
           <button
             type="button"
             className={tool === "add" ? "mac-seg active" : "mac-seg"}
+            aria-pressed={tool === "add"}
             onClick={() => setTool("add")}
           >
             + Mask
@@ -109,6 +204,7 @@ export function SegmentApp() {
           <button
             type="button"
             className={tool === "move" ? "mac-seg active" : "mac-seg"}
+            aria-pressed={tool === "move"}
             onClick={() => setTool("move")}
           >
             Move
@@ -116,7 +212,15 @@ export function SegmentApp() {
           <button type="button" className="mac-btn" onClick={autoSeg}>
             Auto-seg
           </button>
-          <button type="button" className="mac-btn" onClick={() => setMasks([])}>
+          <button
+            type="button"
+            className="mac-btn"
+            onClick={() => {
+              setMasks([])
+              setSelected(null)
+            }}
+            disabled={masks.length === 0}
+          >
             Clear
           </button>
         </div>
@@ -140,17 +244,27 @@ export function SegmentApp() {
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          onLostPointerCapture={() => {
+            drag.current = null
+          }}
         >
-          <div className="seg-subject">
-            <div className="seg-subject-head" />
-            <div className="seg-subject-body" />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/assets/peteros/segment-patient-frame.webp"
+            alt="Anonymous overhead depth-camera frame of a patient on a clinical bed"
+            className="seg-source-image"
+            decoding="async"
+            draggable={false}
+          />
           {masks.map((m) => (
             <button
               key={m.id}
               type="button"
               data-mask-id={m.id}
               className={selected === m.id ? "seg-mask active" : "seg-mask"}
+              aria-label={`${m.label} mask ${m.id}`}
+              aria-pressed={selected === m.id}
               style={{
                 left: `${m.x}%`,
                 top: `${m.y}%`,
@@ -163,6 +277,7 @@ export function SegmentApp() {
                 e.stopPropagation()
                 setSelected(m.id)
               }}
+              onKeyDown={(event) => onMaskKeyDown(event, m)}
             />
           ))}
           <span className="seg-hint">
@@ -178,7 +293,10 @@ export function SegmentApp() {
                 <button
                   type="button"
                   className={selected === m.id ? "active" : ""}
+                  aria-pressed={selected === m.id}
+                  data-window-focus={selected === m.id ? "" : undefined}
                   onClick={() => setSelected(m.id)}
+                  onKeyDown={(event) => onMaskKeyDown(event, m)}
                 >
                   <i style={{ background: `hsl(${m.hue}, 70%, 55%)` }} />
                   <span>{m.label}</span>
@@ -207,6 +325,10 @@ export function SegmentApp() {
           )}
           <p className="seg-footnote">SAM-flavored demo · AI for Health CV vibe</p>
         </aside>
+      </div>
+      <div className="seg-statusbar" role="status">
+        <span>{masks.length} {masks.length === 1 ? "mask" : "masks"} · frame 0248</span>
+        <span>{selected ? `${sel?.label ?? "mask"} selected · arrows nudge` : "No selection"}</span>
       </div>
     </div>
   )

@@ -449,6 +449,7 @@ export function OsStage({ defaultExpanded = false }: Props) {
         >
           <LazyPeterOS
             mode="fullscreen"
+            suspended={!open && !active}
             onCloseExpand={open ? closeOS : undefined}
           />
         </div>

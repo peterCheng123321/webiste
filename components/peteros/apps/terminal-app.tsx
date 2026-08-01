@@ -2,6 +2,13 @@
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react"
 import { defaultData } from "@/lib/default-data"
+import { isAppId, type AppId } from "../types"
+
+const APP_ALIASES: Record<string, AppId> = {
+  imu: "sensor",
+  cv: "segment",
+  schedule: "scheduler",
+}
 
 const HELP = `Available commands:
   help       Show this help
@@ -46,7 +53,10 @@ function runCommand(
             : []
         )
     case "ls":
-      return ["about/", "projects/", "experience/", "skills/", "toys/", "resume.pdf", "contact.txt"]
+      return [
+        "bio.txt  projects.txt  skills.txt  contact.txt  resume.pdf",
+        "apps/    toys/",
+      ]
     case "toys":
       return [
         "scheduler  — course grid (Engineering Course Scheduler)",
@@ -59,12 +69,13 @@ function runCommand(
       ]
     case "cat": {
       if (!arg) return ["usage: cat <bio|projects|skills|contact>"]
-      if (arg === "bio") return [defaultData.personalInfo.bio]
-      if (arg === "projects")
+      const file = arg.replace(/\.txt$/i, "")
+      if (file === "bio") return [defaultData.personalInfo.bio]
+      if (file === "projects")
         return defaultData.projects.map((p) => `• ${p.title} (${p.year ?? "—"})`)
-      if (arg === "skills")
+      if (file === "skills")
         return [defaultData.skills.map((s) => s.name).join(", ")]
-      if (arg === "contact")
+      if (file === "contact")
         return [
           defaultData.personalInfo.email,
           defaultData.personalInfo.github ?? "",
@@ -80,8 +91,15 @@ function runCommand(
           "apps: about projects resume finder terminal scheduler ats sensor segment paint",
         ]
       }
-      if (onOpenApp) onOpenApp(app)
-      return [`Opening ${app}…`]
+      const resolved = APP_ALIASES[app] ?? app
+      if (!isAppId(resolved)) {
+        return [
+          `open: ${app}: app not found`,
+          "try: about projects resume finder terminal scheduler ats sensor segment paint",
+        ]
+      }
+      if (onOpenApp) onOpenApp(resolved)
+      return [`Opening ${resolved}…`]
     }
     case "clear":
       return ["__CLEAR__"]
@@ -120,11 +138,13 @@ export function TerminalApp({ onOpenApp }: Props) {
   const [input, setInput] = useState("")
   const [history, setHistory] = useState<string[]>([])
   const [histIdx, setHistIdx] = useState(-1)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const draftRef = useRef("")
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" })
+    const scroll = scrollRef.current
+    if (scroll) scroll.scrollTop = scroll.scrollHeight
   }, [lines])
 
   const submit = (e?: FormEvent) => {
@@ -140,12 +160,36 @@ export function TerminalApp({ onOpenApp }: Props) {
       setHistory((h) => [cmd, ...h].slice(0, 50))
     }
     setHistIdx(-1)
+    draftRef.current = ""
     setInput("")
   }
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      submit()
+      return
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "l") {
+      e.preventDefault()
+      setLines([])
+      return
+    }
+    if (e.ctrlKey && e.key.toLowerCase() === "c") {
+      e.preventDefault()
+      setLines((current) => [
+        ...current,
+        `peter@os ~ % ${input}^C`,
+        "",
+      ])
+      setInput("")
+      setHistIdx(-1)
+      draftRef.current = ""
+      return
+    }
     if (e.key === "ArrowUp") {
       e.preventDefault()
+      if (histIdx < 0) draftRef.current = input
       const next = Math.min(histIdx + 1, history.length - 1)
       if (history[next] != null) {
         setHistIdx(next)
@@ -156,7 +200,7 @@ export function TerminalApp({ onOpenApp }: Props) {
       const next = histIdx - 1
       if (next < 0) {
         setHistIdx(-1)
-        setInput("")
+        setInput(draftRef.current)
       } else {
         setHistIdx(next)
         setInput(history[next])
@@ -169,14 +213,16 @@ export function TerminalApp({ onOpenApp }: Props) {
       className="pos-app pos-terminal"
       onClick={() => inputRef.current?.focus()}
     >
-      <div className="pos-terminal-scroll">
-        {lines.map((l, i) => (
-          <div key={i} className="pos-terminal-line">
-            {l}
-          </div>
-        ))}
+      <div className="pos-terminal-scroll" ref={scrollRef}>
+        <div className="pos-terminal-output" role="log" aria-live="polite" aria-relevant="additions text">
+          {lines.map((l, i) => (
+            <div key={i} className="pos-terminal-line">
+              {l}
+            </div>
+          ))}
+        </div>
         <form className="pos-terminal-input-row" onSubmit={submit}>
-          <span className="pos-terminal-prompt">peter@os ~ %</span>
+          <span className="pos-terminal-prompt" id="terminal-prompt">peter@os ~ %</span>
           <input
             ref={inputRef}
             className="pos-terminal-input"
@@ -187,9 +233,14 @@ export function TerminalApp({ onOpenApp }: Props) {
             spellCheck={false}
             autoComplete="off"
             aria-label="Terminal input"
+            aria-describedby="terminal-prompt"
+            data-window-focus
           />
         </form>
-        <div ref={bottomRef} />
+      </div>
+      <div className="pos-terminal-status" aria-hidden="true">
+        <span>zsh · UTF-8</span>
+        <span>{lines.length} lines · PeterOS session</span>
       </div>
     </div>
   )
