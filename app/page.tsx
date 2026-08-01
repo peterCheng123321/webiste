@@ -84,6 +84,12 @@ export default function Home() {
                 </span>
               </li>
               <li>
+                <Link className="home-index-link" href="/blog">
+                  <span>Notes</span>
+                  <span className="home-index-sub">Writing &amp; logs</span>
+                </Link>
+              </li>
+              <li>
                 <a
                   className="home-index-link"
                   href="/resume.pdf"
@@ -174,6 +180,9 @@ export default function Home() {
           <ul className="home-hlist">
             <li>
               <a href={`mailto:${personalInfo.email}`}>Email</a>
+            </li>
+            <li>
+              <Link href="/blog">Notes</Link>
             </li>
             {personalInfo.github && (
               <li>

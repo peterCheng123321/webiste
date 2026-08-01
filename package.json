@@ -11,12 +11,15 @@
   "dependencies": {
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
+    "gray-matter": "^4.0.3",
     "html-to-image": "^1.11.13",
     "lucide-react": "^0.454.0",
     "motion": "^12.42.2",
     "next": "15.2.8",
     "react": "^19",
-    "react-dom": "^19"
+    "react-dom": "^19",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@types/node": "^22",

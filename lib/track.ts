@@ -14,6 +14,11 @@ export type TrackEvent =
   | "cta_contact_submit"
   | "outbound_link"
   | "peteros_app_open"
+  | "blog_list_view"
+  | "blog_view"
+  | "blog_scroll"
+  | "blog_complete"
+  | "blog_outbound"
 
 export function track(
   event: TrackEvent,
