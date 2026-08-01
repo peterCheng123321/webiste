@@ -2,6 +2,8 @@ import type React from "react"
 import "./globals.css"
 import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import { TrafficTracker } from "@/components/traffic-tracker"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -40,7 +42,9 @@ export default function RootLayout({
         className={`${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} font-sans`}
       >
         {children}
+        <TrafficTracker />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )

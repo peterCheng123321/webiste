@@ -30,6 +30,7 @@ import {
   type PeterOSTrashEntry,
 } from "./context"
 import { AnimatePresence } from "motion/react"
+import { track } from "@/lib/track"
 
 function AppLoading() {
   return (
@@ -330,6 +331,7 @@ function PeterOSComponent({
   const openApp = useCallback((appId: AppId | string) => {
     if (!isAppId(appId)) return
     const id = appId
+    track("peteros_app_open", { app: id })
 
     setRunning((current) => {
       if (current.has(id)) return current
