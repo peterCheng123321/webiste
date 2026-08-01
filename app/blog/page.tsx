@@ -27,8 +27,10 @@ export default function BlogIndexPage() {
         <p className="blog-kicker">Notes</p>
         <h1 className="blog-title">Writing</h1>
         <p className="blog-lede">
-          Systems, research, and career breadcrumbs. Posts live as Markdown in
-          the site repo — versioned on GitHub, tracked for reading.
+          Systems, research, and career breadcrumbs — including pieces first
+          published on{" "}
+          <a href="https://substack.com/@petercheng2">Substack</a>. Posts live
+          as Markdown in the site repo, versioned on GitHub, tracked for reading.
         </p>
       </div>
 
@@ -69,6 +71,13 @@ export default function BlogIndexPage() {
 
       <footer className="blog-foot">
         <Link href="/">Home</Link>
+        <a
+          href="https://substack.com/@petercheng2"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Substack
+        </a>
         <a href="/resume.pdf" target="_blank" rel="noreferrer">
           Résumé
         </a>

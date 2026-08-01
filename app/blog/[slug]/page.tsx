@@ -71,6 +71,13 @@ export default async function BlogPostPage({ params }: Props) {
       <footer className="blog-foot">
         <Link href="/blog">All notes</Link>
         <Link href="/">Home</Link>
+        <a
+          href="https://substack.com/@petercheng2"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Substack
+        </a>
         <a href="mailto:chengzhongquan0630@gmail.com">Email</a>
       </footer>
     </main>
