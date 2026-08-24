@@ -20,13 +20,12 @@ const browser = await puppeteer.launch({
 const page = await browser.newPage()
 await page.setViewport({ width: 1280, height: 720 })
 
-const navStart = Date.now()
-await page.goto(`${BASE}/os`, { waitUntil: "networkidle0", timeout: 60_000 })
+await page.goto(`${BASE}/os`, { waitUntil: "domcontentloaded", timeout: 60_000 })
 const about = await page.waitForSelector(
   '[data-app-id="about"][data-closed="false"]',
   { timeout: 30_000 },
 )
-const aboutVisibleMs = Date.now() - navStart
+const aboutVisibleMs = await page.evaluate(() => performance.now())
 
 const bootMeasure = await page.evaluate(() => {
   const entries = performance.getEntriesByName("peteros-boot")

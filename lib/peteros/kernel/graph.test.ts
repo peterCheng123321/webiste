@@ -11,10 +11,10 @@ describe("bundle graph", () => {
     expect(page).not.toMatch("peter-os")
   })
 
-  it("/os page does not statically import peter-os", () => {
+  it("/os page loads the desktop through OsPageClient, not the homepage graph", () => {
     const page = readFileSync(path.join(root, "app/os/page.tsx"), "utf8")
-    expect(page).not.toMatch('from "@/components/peteros/peter-os"')
     expect(page).toMatch("OsPageClient")
+    expect(page).not.toMatch("lib/peteros")
   })
 
   it("homepage globals no longer contain .pos-shell desktop chrome", () => {
