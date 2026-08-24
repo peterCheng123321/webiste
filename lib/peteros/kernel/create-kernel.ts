@@ -298,12 +298,12 @@ export function createKernel(options: CreateKernelOptions = {}) {
       const win = state.windows.find((w) => w.id === id)
       if (!win) return
       const nx = Math.min(
-        Math.max(16, x),
-        Math.max(16, state.bounds.w - win.width - 16),
+        Math.max(-win.width + 80, x),
+        Math.max(-win.width + 80, state.bounds.w - 80),
       )
       const ny = Math.min(
         Math.max(0, y),
-        Math.max(0, state.bounds.h - win.height - 72),
+        Math.max(0, state.bounds.h - 40),
       )
       if (nx === win.x && ny === win.y) return
       setState({

@@ -100,6 +100,20 @@ export function SensorApp({ suspended = false }: Props) {
     let worker: Worker | null = null
     let raf = 0
     let lastPublish = 0
+    let sync: ReturnType<typeof setInterval> | null = null
+    let fallbackStarted = false
+    const startFallback = () => {
+      if (fallbackStarted) return
+      fallbackStarted = true
+      const draw = (now: number) => {
+        if (now - lastPublish >= 100) {
+          lastPublish = now
+          paint(target.current)
+        }
+        raf = requestAnimationFrame(draw)
+      }
+      raf = requestAnimationFrame(draw)
+    }
     try {
       worker = new Worker(new URL("@/lib/peteros/workers/imu.worker.ts", import.meta.url))
       worker.onmessage = (event: MessageEvent) => {
@@ -110,25 +124,24 @@ export function SensorApp({ suspended = false }: Props) {
       worker.onerror = () => {
         worker?.terminate()
         worker = null
+        if (sync) {
+          clearInterval(sync)
+          sync = null
+        }
+        startFallback()
       }
-      const sync = setInterval(() => {
+      sync = setInterval(() => {
         worker?.postMessage({ type: "target", ...target.current })
       }, FRAME_MS)
       worker.postMessage({ type: "start" })
       return () => {
-        clearInterval(sync)
+        if (sync) clearInterval(sync)
         worker?.postMessage({ type: "stop" })
         worker?.terminate()
+        if (raf) cancelAnimationFrame(raf)
       }
     } catch {
-      const draw = (now: number) => {
-        if (now - lastPublish >= 100) {
-          lastPublish = now
-          paint(target.current)
-        }
-        raf = requestAnimationFrame(draw)
-      }
-      raf = requestAnimationFrame(draw)
+      startFallback()
       return () => cancelAnimationFrame(raf)
     }
   }, [running, suspended])

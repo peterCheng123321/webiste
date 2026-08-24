@@ -78,4 +78,14 @@ describe("createKernel", () => {
     expect(projectAfter.y).toBe(projectBefore.y)
     expect(projectAfter.width).toBe(projectBefore.width)
   })
+
+  it("keeps a title-bar handle reachable when moving windows offscreen", () => {
+    const k = kernelWithIds(["about-1"])
+    k.init({ w: 1200, h: 800 })
+    const about = k.getState().windows[0]
+    k.move(about.id, -1000, 1000)
+    const moved = k.getState().windows[0]
+    expect(moved.x).toBe(-about.width + 80)
+    expect(moved.y).toBe(760)
+  })
 })
