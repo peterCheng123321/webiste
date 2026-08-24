@@ -1,5 +1,6 @@
 "use client"
 
+import "@/app/peteros.css"
 import {
   memo,
   useCallback,
@@ -11,13 +12,10 @@ import {
 } from "react"
 import dynamic from "next/dynamic"
 import {
-  SYSTEM_APPS,
   TOY_APPS,
   appMeta,
   isAppId,
   type AppId,
-  type WindowGeometry,
-  type WindowState,
 } from "./types"
 import { WindowFrame } from "./window-frame"
 import { AboutApp } from "./apps/about-app"
@@ -27,10 +25,13 @@ import { MenuBar } from "./menu-bar"
 import {
   PeterOSContext,
   type IconAppearance,
-  type PeterOSTrashEntry,
 } from "./context"
 import { AnimatePresence } from "motion/react"
 import { track } from "@/lib/track"
+import { bootPeterOS } from "@/lib/peteros/boot"
+import { useKernelState, usePeterOSKernel } from "@/lib/peteros/hooks"
+import { focusedWindowId } from "@/lib/peteros/kernel/create-kernel"
+import { shouldTick } from "@/lib/peteros/kernel/scheduler"
 
 function AppLoading() {
   return (
@@ -92,23 +93,6 @@ const APPEARANCE_KEY = "peteros-icon-appearance"
 // The Dock owns core applications; the desktop is the workbench for labs.
 // Keeping those roles distinct avoids presenting the same launcher twice.
 const DESKTOP_APPS = TOY_APPS
-
-function nextId() {
-  return `w-${Math.random().toString(36).slice(2, 9)}`
-}
-
-function defaultPlacement(appId: AppId, index: number, bounds: { w: number; h: number }) {
-  const meta = appMeta(appId)
-  const verticalClearance = bounds.h <= 500 ? 150 : 110
-  const width = Math.min(meta.defaultWidth, Math.max(240, bounds.w - 32))
-  const height = Math.min(
-    meta.defaultHeight,
-    Math.max(180, bounds.h - verticalClearance),
-  )
-  const x = Math.min(48 + (index % 5) * 24, Math.max(16, bounds.w - width - 16))
-  const y = 44 + (index % 5) * 20
-  return { width, height, x, y }
-}
 
 function readAppearance(): IconAppearance {
   if (typeof window === "undefined") return "light"
@@ -179,19 +163,18 @@ function PeterOSComponent({
   const rootRef = useRef<HTMLDivElement>(null)
   const desktopRef = useRef<HTMLDivElement>(null)
   const contextMenuRef = useRef<HTMLDivElement>(null)
-  const bootedRef = useRef(false)
-  const [bounds, setBounds] = useState({ w: 0, h: 0 })
-  const [windows, setWindows] = useState<WindowState[]>([])
-  const [running, setRunning] = useState<Set<AppId>>(() => new Set())
-  const [zTop, setZTop] = useState(10)
+  const kernel = usePeterOSKernel()
+  const os = useKernelState(kernel)
   const [clock, setClock] = useState("")
-  const [appearance, setAppearanceState] = useState<IconAppearance>("light")
-  const [trashItems, setTrashItems] = useState<PeterOSTrashEntry[]>([])
-  const [purgedTrashKeys, setPurgedTrashKeys] = useState<string[]>([])
   const [finderTrashOpenToken, setFinderTrashOpenToken] = useState(0)
   const [finderTrashConfirmToken, setFinderTrashConfirmToken] = useState(0)
   const [selectedDesktopApp, setSelectedDesktopApp] = useState<AppId | null>(null)
   const [desktopMenu, setDesktopMenu] = useState<DesktopMenuState>(null)
+  const windows = os.windows
+  const bounds = os.bounds
+  const appearance = os.appearance
+  const trashItems = os.trashItems
+  const purgedTrashKeys = os.purgedTrashKeys
   const windowsRef = useRef(windows)
   const focusedIdRef = useRef<string | null>(null)
   windowsRef.current = windows
@@ -204,17 +187,17 @@ function PeterOSComponent({
   }, [desktopMenu])
 
   useEffect(() => {
-    setAppearanceState(readAppearance())
-  }, [])
+    kernel.setAppearance(readAppearance())
+  }, [kernel])
 
   const setAppearance = useCallback((a: IconAppearance) => {
-    setAppearanceState(a)
+    kernel.setAppearance(a)
     try {
       localStorage.setItem(APPEARANCE_KEY, a)
     } catch {
       /* ignore */
     }
-  }, [])
+  }, [kernel])
 
   useEffect(() => {
     if (suspended) return
@@ -222,11 +205,15 @@ function PeterOSComponent({
     if (!el) return
     const ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect
-      setBounds({ w: width, h: height })
+      if (!kernel.getState().booted) {
+        bootPeterOS(kernel, { w: width, h: height })
+      } else {
+        kernel.setBounds({ w: width, h: height })
+      }
     })
     ro.observe(el)
     return () => ro.disconnect()
-  }, [suspended])
+  }, [kernel, suspended])
 
   useEffect(() => {
     if (suspended) return
@@ -252,185 +239,19 @@ function PeterOSComponent({
     return () => window.clearTimeout(timeout)
   }, [suspended])
 
-  useEffect(() => {
-    if (bootedRef.current || bounds.w <= 0 || bounds.h <= 0) return
-
-    bootedRef.current = true
-    const place = defaultPlacement("about", 0, bounds)
-    setWindows([
-      {
-        id: nextId(),
-        appId: "about",
-        title: "Peter // System Profiler",
-        ...place,
-        z: 10,
-        minimized: false,
-        closed: false,
-        maximized: false,
-      },
-    ])
-    setRunning(new Set(["about"]))
-  }, [bounds])
-
-  useEffect(() => {
-    if (bounds.w <= 0 || bounds.h <= 0) return
-
-    setWindows((current) =>
-      current.map((win) => {
-        const meta = appMeta(win.appId)
-        const availableWidth = Math.max(240, bounds.w - 32)
-        const availableHeight = Math.max(
-          180,
-          bounds.h - (bounds.h <= 500 ? 150 : 110),
-        )
-        const width = Math.min(
-          Math.max(win.width, Math.min(meta.minWidth, availableWidth)),
-          availableWidth,
-        )
-        const verticalClearance = bounds.h <= 500 ? 150 : 110
-        const height = Math.min(
-          Math.max(win.height, Math.min(meta.minHeight, availableHeight)),
-          Math.max(180, bounds.h - verticalClearance),
-        )
-        const x = Math.min(
-          Math.max(16, win.x),
-          Math.max(16, bounds.w - width - 16),
-        )
-        const y = Math.min(Math.max(0, win.y), Math.max(0, bounds.h - height - 72))
-
-        if (
-          width === win.width &&
-          height === win.height &&
-          x === win.x &&
-          y === win.y
-        ) {
-          return win
-        }
-
-        return { ...win, width, height, x, y }
-      }),
-    )
-  }, [bounds.h, bounds.w])
-
   const focus = useCallback((id: string) => {
-    if (focusedIdRef.current === id) return
-    focusedIdRef.current = id
-    setZTop((z) => {
-      const next = z + 1
-      setWindows((ws) => {
-        return ws.map((w) =>
-          w.id === id
-            ? { ...w, z: next, minimized: false, closed: false }
-            : w
-        )
-      })
-      return next
-    })
-  }, [])
+    kernel.focus(id)
+  }, [kernel])
 
   const openApp = useCallback((appId: AppId | string) => {
     if (!isAppId(appId)) return
-    const id = appId
-    track("peteros_app_open", { app: id })
-
-    setRunning((current) => {
-      if (current.has(id)) return current
-      const next = new Set(current)
-      next.add(id)
-      return next
-    })
-
-    setZTop((z) => {
-      const nextZ = z + 1
-      setWindows((ws) => {
-        const existing = [...ws]
-          .filter((w) => w.appId === id)
-          .sort((a, b) => {
-            const aVisible = !a.minimized && !a.closed ? 1 : 0
-            const bVisible = !b.minimized && !b.closed ? 1 : 0
-            if (aVisible !== bVisible) return bVisible - aVisible
-            return b.z - a.z
-          })[0]
-        if (existing) {
-          return ws.map((w) =>
-            w.id === existing.id
-              ? { ...w, minimized: false, closed: false, z: nextZ }
-              : w
-          )
-        }
-        const place = defaultPlacement(id, ws.length, {
-          w:
-            desktopRef.current?.clientWidth ??
-            rootRef.current?.clientWidth ??
-            800,
-          h:
-            desktopRef.current?.clientHeight ??
-            rootRef.current?.clientHeight ??
-            500,
-        })
-        return [
-          ...ws,
-          {
-            id: nextId(),
-            appId: id,
-            title: id === "about" ? "Peter // System Profiler" : appMeta(id).title,
-            ...place,
-            z: nextZ,
-            minimized: false,
-            closed: false,
-            maximized: false,
-          },
-        ]
-      })
-      return nextZ
-    })
-  }, [])
+    track("peteros_app_open", { app: appId })
+    kernel.open(appId)
+  }, [kernel])
 
   const openNewApp = useCallback((appId: AppId | string) => {
-    if (!isAppId(appId)) return
-    const id = appId
-
-    setRunning((current) => {
-      if (current.has(id)) return current
-      const next = new Set(current)
-      next.add(id)
-      return next
-    })
-
-    setZTop((z) => {
-      const nextZ = z + 1
-      setWindows((ws) => {
-        const place = defaultPlacement(id, ws.length, {
-          w:
-            desktopRef.current?.clientWidth ??
-            rootRef.current?.clientWidth ??
-            800,
-          h:
-            desktopRef.current?.clientHeight ??
-            rootRef.current?.clientHeight ??
-            500,
-        })
-        const retained =
-          id === "finder"
-            ? ws.filter((window) => !(window.appId === "finder" && window.closed))
-            : ws
-        return [
-          ...retained,
-          {
-            id: nextId(),
-            appId: id,
-            title: id === "about" ? "Peter // System Profiler" : appMeta(id).title,
-            ...place,
-            z: nextZ,
-            minimized: false,
-            closed: false,
-            maximized: false,
-          },
-        ]
-      })
-      return nextZ
-    })
-  }, [])
+    kernel.openNew(appId)
+  }, [kernel])
 
   const onDesktopIconKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLButtonElement>, appId: AppId) => {
@@ -499,21 +320,21 @@ function PeterOSComponent({
     [openApp],
   )
 
-  const putInTrash = useCallback((entry: PeterOSTrashEntry) => {
-    setTrashItems((current) =>
-      current.some((item) => item.key === entry.key)
-        ? current
-        : [...current, entry],
-    )
-  }, [])
-  const restoreTrashItem = useCallback((key: string) => {
-    setTrashItems((current) => current.filter((item) => item.key !== key))
-  }, [])
+  const putInTrash = useCallback(
+    (entry: Parameters<typeof kernel.putInTrash>[0]) => {
+      kernel.putInTrash(entry)
+    },
+    [kernel],
+  )
+  const restoreTrashItem = useCallback(
+    (key: string) => {
+      kernel.restoreTrashItem(key)
+    },
+    [kernel],
+  )
   const emptyTrash = useCallback(() => {
-    const keys = trashItems.map((item) => item.key)
-    setPurgedTrashKeys((purged) => [...new Set([...purged, ...keys])])
-    setTrashItems([])
-  }, [trashItems])
+    kernel.emptyTrash()
+  }, [kernel])
   const trashFull = trashItems.length > 0
 
   const focusDockApp = useCallback((appId?: AppId) => {
@@ -532,61 +353,34 @@ function PeterOSComponent({
 
   const close = useCallback((id: string) => {
     const appId = windowsRef.current.find((window) => window.id === id)?.appId
-    if (focusedIdRef.current === id) focusedIdRef.current = null
-    setWindows((ws) =>
-      ws.map((window) =>
-        window.id === id
-          ? { ...window, minimized: false, closed: true }
-          : window,
-      ),
-    )
+    kernel.close(id)
     focusDockApp(appId)
-  }, [focusDockApp])
+  }, [focusDockApp, kernel])
 
   const quitApp = useCallback((appId: AppId) => {
-    setWindows((ws) => ws.filter((window) => window.appId !== appId))
-    setRunning((current) => {
-      if (!current.has(appId)) return current
-      const next = new Set(current)
-      next.delete(appId)
-      return next
-    })
+    kernel.quit(appId)
     focusDockApp(appId)
-  }, [focusDockApp])
+  }, [focusDockApp, kernel])
 
   const minimize = useCallback((id: string) => {
     const appId = windowsRef.current.find((window) => window.id === id)?.appId
-    if (focusedIdRef.current === id) focusedIdRef.current = null
-    setWindows((ws) =>
-      ws.map((w) =>
-        w.id === id ? { ...w, minimized: true, closed: false } : w,
-      ),
-    )
+    kernel.minimize(id)
     focusDockApp(appId)
-  }, [focusDockApp])
+  }, [focusDockApp, kernel])
 
   const maximize = useCallback((id: string) => {
-    setWindows((ws) =>
-      ws.map((w) => (w.id === id ? { ...w, maximized: !w.maximized } : w))
-    )
-  }, [])
+    kernel.maximize(id)
+  }, [kernel])
 
   const move = useCallback((id: string, x: number, y: number) => {
-    setWindows((ws) => ws.map((w) => (w.id === id ? { ...w, x, y } : w)))
-  }, [])
+    kernel.move(id, x, y)
+  }, [kernel])
 
-  const resize = useCallback((id: string, geometry: WindowGeometry) => {
-    setWindows((ws) =>
-      ws.map((w) => (w.id === id ? { ...w, ...geometry } : w))
-    )
-  }, [])
+  const resize = useCallback((id: string, geometry: Parameters<typeof kernel.resize>[1]) => {
+    kernel.resize(id, geometry)
+  }, [kernel])
 
-  const focusedId = useMemo(() => {
-    const top = [...windows]
-      .filter((w) => !w.minimized && !w.closed)
-      .sort((a, b) => b.z - a.z)[0]
-    return top?.id ?? null
-  }, [windows])
+  const focusedId = focusedWindowId(windows)
   focusedIdRef.current = focusedId
 
   const focusedAppId = useMemo(
@@ -611,14 +405,10 @@ function PeterOSComponent({
   }, [focusedId, maximize])
 
   const closeAll = useCallback(() => {
-    setWindows((current) =>
-      current.map((window) => ({
-        ...window,
-        minimized: false,
-        closed: true,
-      })),
-    )
-  }, [])
+    for (const window of kernel.getState().windows) {
+      kernel.close(window.id)
+    }
+  }, [kernel])
 
   const openTrash = useCallback(() => {
     setFinderTrashOpenToken((token) => token + 1)
@@ -656,6 +446,7 @@ function PeterOSComponent({
     () => new Set<AppId>(openAppsSignature ? (openAppsSignature.split("|") as AppId[]) : []),
     [openAppsSignature],
   )
+  const running = useMemo(() => new Set<AppId>(os.running), [os.running])
   const windowBounds = useMemo(
     () => ({ width: bounds.w, height: bounds.h }),
     [bounds.h, bounds.w],
@@ -960,7 +751,12 @@ function PeterOSComponent({
                     appId={win.appId}
                     focused={win.id === focusedId}
                     hidden={win.minimized || win.closed}
-                    suspended={suspended}
+                    suspended={
+                      suspended ||
+                      win.minimized ||
+                      win.closed ||
+                      !shouldTick(kernel, win.appId)
+                    }
                     finderTrashOpenToken={finderTrashOpenToken}
                     finderTrashConfirmToken={finderTrashConfirmToken}
                     onOpenApp={openApp}

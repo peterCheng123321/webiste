@@ -1,5 +1,5 @@
-import { PeterOS } from "@/components/peteros/peter-os"
 import { OsDesktopGate } from "@/components/peteros/os-desktop-gate"
+import { OsPageClient } from "@/components/peteros/os-page-client"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -11,9 +11,7 @@ export const metadata: Metadata = {
 export default function OsPage() {
   return (
     <OsDesktopGate>
-      <main className="os-page">
-        <PeterOS mode="page" />
-      </main>
+      <OsPageClient />
     </OsDesktopGate>
   )
 }

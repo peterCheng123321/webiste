@@ -1,5 +1,6 @@
 "use client"
 
+import "@/app/peteros.css"
 import type { ReactNode } from "react"
 import Link from "next/link"
 import { usePeterOSDesktop } from "./use-peteros-desktop"

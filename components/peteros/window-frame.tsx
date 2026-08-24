@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  memo,
   useCallback,
   useEffect,
   useRef,
@@ -47,7 +48,7 @@ type Props = {
   hidden?: boolean
 }
 
-export function WindowFrame({
+function WindowFrameComponent({
   win,
   focused,
   children,
@@ -442,3 +443,5 @@ export function WindowFrame({
     </motion.div>
   )
 }
+
+export const WindowFrame = memo(WindowFrameComponent)

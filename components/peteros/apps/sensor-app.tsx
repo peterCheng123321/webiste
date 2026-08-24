@@ -65,21 +65,11 @@ export function SensorApp({ suspended = false }: Props) {
     if (!canvas) return
     const ctx = canvas.getContext("2d")
     if (!ctx) return
-    let raf = 0
-    let lastFrame = 0
-    let lastPublish = 0
 
-    const draw = (now: number) => {
-      if (now - lastFrame < FRAME_MS * 0.85) {
-        raf = requestAnimationFrame(draw)
-        return
-      }
-      lastFrame = now
-      const t = target.current
+    const paint = (t: { x: number; y: number; z: number }) => {
       pushSample(bufX.current, t.x)
       pushSample(bufY.current, t.y)
       pushSample(bufZ.current, t.z)
-
       ctx.fillStyle = "#0b0f14"
       ctx.fillRect(0, 0, W, H)
       ctx.strokeStyle = "rgba(255,255,255,0.06)"
@@ -89,11 +79,9 @@ export function SensorApp({ suspended = false }: Props) {
         ctx.lineTo(W, y)
       }
       ctx.stroke()
-
       strokeSignal(ctx, bufX.current, "#ff6b6b")
       strokeSignal(ctx, bufY.current, "#4ecdc4")
       strokeSignal(ctx, bufZ.current, "#ffe66d")
-
       const last =
         Math.abs((bufX.current.at(-1) ?? H / 2) - H / 2) +
         Math.abs((bufY.current.at(-1) ?? H / 2) - H / 2) +
@@ -101,20 +89,48 @@ export function SensorApp({ suspended = false }: Props) {
       const m = Math.min(100, Math.round((last / (H * 1.2)) * 100))
       peakRef.current = Math.max(peakRef.current * 0.995, m)
       sampleCountRef.current++
-      if (now - lastPublish >= 100) {
-        lastPublish = now
-        setTelemetry({
-          mag: m,
-          peak: Math.round(peakRef.current),
-          samples: sampleCountRef.current,
-          label: m > 55 ? "active" : m > 22 ? "motion" : "idle",
-        })
-      }
-
-      raf = requestAnimationFrame(draw)
+      setTelemetry({
+        mag: m,
+        peak: Math.round(peakRef.current),
+        samples: sampleCountRef.current,
+        label: m > 55 ? "active" : m > 22 ? "motion" : "idle",
+      })
     }
-    raf = requestAnimationFrame(draw)
-    return () => cancelAnimationFrame(raf)
+
+    let worker: Worker | null = null
+    let raf = 0
+    let lastPublish = 0
+    try {
+      worker = new Worker(new URL("@/lib/peteros/workers/imu.worker.ts", import.meta.url))
+      worker.onmessage = (event: MessageEvent) => {
+        if (event.data?.type !== "sample") return
+        target.current = { x: event.data.x, y: event.data.y, z: event.data.z }
+        paint(target.current)
+      }
+      worker.onerror = () => {
+        worker?.terminate()
+        worker = null
+      }
+      const sync = setInterval(() => {
+        worker?.postMessage({ type: "target", ...target.current })
+      }, FRAME_MS)
+      worker.postMessage({ type: "start" })
+      return () => {
+        clearInterval(sync)
+        worker?.postMessage({ type: "stop" })
+        worker?.terminate()
+      }
+    } catch {
+      const draw = (now: number) => {
+        if (now - lastPublish >= 100) {
+          lastPublish = now
+          paint(target.current)
+        }
+        raf = requestAnimationFrame(draw)
+      }
+      raf = requestAnimationFrame(draw)
+      return () => cancelAnimationFrame(raf)
+    }
   }, [running, suspended])
 
   useEffect(() => {
