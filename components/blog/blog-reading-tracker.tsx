@@ -22,6 +22,7 @@ export function BlogReadingTracker({ slug, title }: Props) {
       const max = el.scrollHeight - el.clientHeight
       if (max <= 0) return
       const pct = Math.round((el.scrollTop / max) * 100)
+      el.style.setProperty("--blog-read-progress", `${pct}%`)
 
       for (const mark of [25, 50, 75] as const) {
         const key = `s${mark}`
@@ -59,6 +60,7 @@ export function BlogReadingTracker({ slug, title }: Props) {
     document.addEventListener("click", onClick, { capture: true })
 
     return () => {
+      document.documentElement.style.removeProperty("--blog-read-progress")
       window.removeEventListener("scroll", onScroll)
       document.removeEventListener("click", onClick, { capture: true })
     }
