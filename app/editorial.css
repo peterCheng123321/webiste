@@ -84,6 +84,9 @@
 
 .home-underline { font-weight: 680; }
 
+/* Deloitte green dot: the headline period echoes the employer's wordmark dot (PMS 368). */
+.home-dot { color: #86bc24; }
+
 .home-underline::after {
   left: 0.035em;
   right: 0.01em;
@@ -437,7 +440,7 @@
 .blog-article-title {
   margin: 0;
   color: var(--editorial-ink);
-  font-family: var(--font-sans), Inter, system-ui, sans-serif;
+  font-family: "Aptos", var(--font-sans), Inter, system-ui, sans-serif;
   font-weight: 560;
   letter-spacing: -0.062em;
   line-height: 0.9;
@@ -538,7 +541,7 @@
 .blog-list-link {
   display: inline;
   color: var(--editorial-ink);
-  font-family: var(--font-sans), Inter, system-ui, sans-serif;
+  font-family: "Aptos", var(--font-sans), Inter, system-ui, sans-serif;
   font-size: clamp(26px, 3.15vw, 50px);
   font-weight: 560;
   letter-spacing: -0.045em;
@@ -667,7 +670,7 @@
 .blog-article-deck p {
   max-width: 70ch;
   margin: 0;
-  font-family: var(--font-sans), Inter, system-ui, sans-serif;
+  font-family: "Aptos", var(--font-sans), Inter, system-ui, sans-serif;
   font-size: clamp(18px, 1.75vw, 26px);
   letter-spacing: -0.02em;
   line-height: 1.25;
@@ -739,7 +742,7 @@
 .blog-prose {
   min-width: 0;
   color: var(--editorial-ink);
-  font-family: var(--font-sans), Inter, system-ui, sans-serif;
+  font-family: "Aptos", var(--font-sans), Inter, system-ui, sans-serif;
   font-size: clamp(16px, 1.25vw, 19px);
   line-height: 1.72;
   letter-spacing: 0;
@@ -893,7 +896,7 @@
 
 .blog-article-signals dd {
   margin: 6px 0 0;
-  font-family: var(--font-sans), Inter, system-ui, sans-serif;
+  font-family: "Aptos", var(--font-sans), Inter, system-ui, sans-serif;
   font-size: clamp(24px, 2.4vw, 38px);
   font-weight: 580;
   letter-spacing: -0.04em;

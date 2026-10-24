@@ -44,7 +44,7 @@ export default function Home() {
           >
             Deloitte
           </a>
-          .
+          <span className="home-dot">.</span>
         </h1>
         <p className="home-role">
           <strong>Analyst 1</strong>
