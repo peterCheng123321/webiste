@@ -1,17 +1,24 @@
 import { renderMarkdown } from "@/lib/markdown"
+import type { ReactNode } from "react"
 import { BlogToc } from "./blog-toc"
 
 type Props = {
   content: string
   slug: string
   showToc?: boolean
+  aside?: ReactNode
 }
 
 /**
  * Server-rendered markdown: GFM, smart punctuation, Shiki code blocks,
  * heading anchors, external-link safety, optional TOC.
  */
-export async function BlogMarkdown({ content, slug, showToc = true }: Props) {
+export async function BlogMarkdown({
+  content,
+  slug,
+  showToc = true,
+  aside,
+}: Props) {
   const { html, headings } = await renderMarkdown(content)
 
   return (
@@ -22,6 +29,7 @@ export async function BlogMarkdown({ content, slug, showToc = true }: Props) {
         // HTML is produced by our rehype pipeline + sanitize step.
         dangerouslySetInnerHTML={{ __html: html }}
       />
+      {aside}
     </div>
   )
 }

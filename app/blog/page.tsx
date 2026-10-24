@@ -1,6 +1,7 @@
 import Link from "next/link"
 import type { Metadata } from "next"
 import { formatPostDate, getAllPosts } from "@/lib/blog"
+import { BlogIndexList } from "@/components/blog/blog-index-list"
 import { BlogListTracker } from "@/components/blog/blog-list-tracker"
 
 export const metadata: Metadata = {
@@ -15,62 +16,42 @@ export default function BlogIndexPage() {
   return (
     <main className="blog">
       <header className="blog-top">
-        <Link href="/" className="blog-top-back">
-          ← Zhongquan Cheng
+        <Link href="/" className="blog-top-brand">
+          Zhongquan Cheng
         </Link>
-        <a href="https://petercheng.dev" className="blog-top-site">
-          petercheng.dev
-        </a>
+        <span className="blog-top-edition">
+          Notes · {String(posts.length).padStart(3, "0")} entries
+        </span>
+        <Link href="/" className="blog-top-site">Portfolio</Link>
       </header>
 
-      <div className="blog-hero">
-        <p className="blog-kicker">Notes</p>
-        <h1 className="blog-title">Writing</h1>
+      <section className="blog-hero" aria-labelledby="notes-title">
+        <div>
+          <p className="blog-kicker">Field notes · systems · work</p>
+          <h1 className="blog-title" id="notes-title">Notes from<br />the work.</h1>
+        </div>
         <p className="blog-lede">
-          Systems, research, and career breadcrumbs — including pieces first
-          published on{" "}
-          <a href="https://substack.com/@petercheng2">Substack</a>. Posts live
-          as Markdown in the site repo, versioned on GitHub, tracked for reading.
+          <strong>Working memory, made public.</strong> Systems lessons, research
+          crumbs, and career logs—edited for signal, kept close to the work that
+          produced them.
         </p>
-      </div>
+      </section>
 
       <BlogListTracker count={posts.length} />
 
       {posts.length === 0 ? (
         <p className="blog-empty">No published posts yet.</p>
       ) : (
-        <ol className="blog-list">
-          {posts.map((post, i) => (
-            <li key={post.slug} className="blog-list-item">
-              <span className="blog-list-num" aria-hidden="true">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <div className="blog-list-body">
-                <Link href={`/blog/${post.slug}`} className="blog-list-link">
-                  {post.title}
-                </Link>
-                {post.description ? (
-                  <p className="blog-list-desc">{post.description}</p>
-                ) : null}
-                <p className="blog-list-meta">
-                  <time dateTime={post.date}>{formatPostDate(post.date)}</time>
-                  <span aria-hidden="true"> · </span>
-                  <span>{post.readingMinutes} min</span>
-                  {post.tags && post.tags.length > 0 ? (
-                    <>
-                      <span aria-hidden="true"> · </span>
-                      <span>{post.tags.join(", ")}</span>
-                    </>
-                  ) : null}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
+        <BlogIndexList
+          posts={posts.map((post) => ({
+            ...post,
+            formattedDate: formatPostDate(post.date),
+          }))}
+        />
       )}
 
       <footer className="blog-foot">
-        <Link href="/">Home</Link>
+        <Link href="/">Portfolio</Link>
         <a
           href="https://substack.com/@petercheng2"
           target="_blank"
@@ -82,6 +63,7 @@ export default function BlogIndexPage() {
           Résumé
         </a>
         <a href="mailto:chengzhongquan0630@gmail.com">Email</a>
+        <span className="blog-foot-mark">Shanghai · 2026</span>
       </footer>
     </main>
   )

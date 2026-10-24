@@ -4231,7 +4231,7 @@
   border-bottom: none;
   background: rgba(12, 15, 31, 0.9);
   box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.02);
-  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Aptos", var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .about-toolbar-brand {

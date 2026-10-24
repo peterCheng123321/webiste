@@ -27,6 +27,7 @@ export default function Home() {
 
       <div className="home-plate">
         <span className="home-plate-name">{personalInfo.name}</span>
+        <span className="home-plate-edition">Portfolio · MMXXVI</span>
         <span className="home-plate-place">
           {personalInfo.location} · UTC+08:00
         </span>
@@ -43,21 +44,26 @@ export default function Home() {
           >
             Deloitte
           </a>
-          .
+          <span className="home-dot">.</span>
         </h1>
+        <p className="home-role">
+          <strong>Analyst 1</strong>
+          <span>Technology Transformation</span>
+        </p>
       </header>
 
-      <ShanghaiDayProgress />
-
-      <section className="home-meta">
+      <section className="home-instrument" aria-label="Current status">
+        <ShanghaiDayProgress />
         <p className="home-small">
-          Technology transformation · backend systems · applied research.
+          <strong>Technology transformation</strong> · backend systems · applied
+          research.
           <span className="home-small-secondary">
-            {education[0] ? ` ${education[0].degree} · WashU` : ""} ·{" "}
-            {personalInfo.location}.
+            {education[0] ? ` ${education[0].degree} · WashU` : ""}.
           </span>
         </p>
+      </section>
 
+      <section className="home-meta">
         <div className="home-index">
           <nav
             className="home-index-panel home-index-explore"
@@ -78,24 +84,28 @@ export default function Home() {
                 >
                   <span>Open PeterOS</span>
                   <span className="home-index-sub">Interactive desktop</span>
+                  <span className="home-index-verb">Launch</span>
                 </button>
               </li>
               <li className="peteros-desktop-only">
                 <Link className="home-index-link" href="/os" prefetch={false}>
                   <span>Full desktop</span>
                   <span className="home-index-sub">Dedicated route</span>
+                  <span className="home-index-verb">Route</span>
                 </Link>
               </li>
               <li className="peteros-mobile-only" aria-hidden="false">
                 <span className="home-index-link home-index-link-static">
                   <span>PeterOS</span>
                   <span className="home-index-sub">Desktop screens only</span>
+                  <span className="home-index-verb">Desktop</span>
                 </span>
               </li>
               <li>
                 <Link className="home-index-link" href="/blog">
                   <span>Notes</span>
-                  <span className="home-index-sub">Writing &amp; logs</span>
+                  <span className="home-index-sub">Writing &amp; field logs</span>
+                  <span className="home-index-verb">Read</span>
                 </Link>
               </li>
               <li>
@@ -106,7 +116,8 @@ export default function Home() {
                   rel="noreferrer"
                 >
                   <span>Résumé</span>
-                  <span className="home-index-sub">PDF</span>
+                  <span className="home-index-sub">PDF · latest edition</span>
+                  <span className="home-index-verb">Open</span>
                 </a>
               </li>
             </ul>
@@ -215,7 +226,8 @@ export default function Home() {
             className="home-text-btn peteros-desktop-only"
             data-open-peteros
           >
-            Explore PeterOS
+            <span className="home-footer-dot" aria-hidden="true" /> PeterOS ·
+            desktop ready
           </button>
           <span className="home-footer-note peteros-mobile-only">
             PeterOS · desktop only

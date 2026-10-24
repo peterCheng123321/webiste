@@ -37,40 +37,56 @@ export default async function BlogPostPage({ params }: Props) {
       <BlogReadingTracker slug={post.slug} title={post.title} />
 
       <header className="blog-top">
-        <Link href="/blog" className="blog-top-back">
-          ← Notes
-        </Link>
-        <Link href="/" className="blog-top-site">
-          Home
-        </Link>
+        <Link href="/" className="blog-top-brand">Zhongquan Cheng</Link>
+        <span className="blog-top-edition">Note · field record</span>
+        <Link href="/blog" className="blog-top-site">All notes</Link>
       </header>
 
       <article className="blog-article">
         <header className="blog-article-head">
-          <p className="blog-kicker">Note</p>
-          <h1 className="blog-article-title">{post.title}</h1>
-          <p className="blog-article-meta">
-            <time dateTime={post.date}>{formatPostDate(post.date)}</time>
-            <span aria-hidden="true"> · </span>
-            <span>{post.readingMinutes} min read</span>
-            {post.tags && post.tags.length > 0 ? (
-              <>
-                <span aria-hidden="true"> · </span>
-                <span>{post.tags.join(" · ")}</span>
-              </>
-            ) : null}
-          </p>
-          {post.description ? (
-            <p className="blog-article-desc">{post.description}</p>
-          ) : null}
+          <div>
+            <p className="blog-kicker">
+              {(post.tags ?? []).slice(0, 2).join(" · ") || "Field note"}
+            </p>
+            <h1 className="blog-article-title">{post.title}</h1>
+          </div>
+          <dl className="blog-article-meta">
+            <div><dt>Published</dt><dd><time dateTime={post.date}>{formatPostDate(post.date)}</time></dd></div>
+            <div><dt>Reading</dt><dd>{post.readingMinutes} minutes</dd></div>
+            <div><dt>Edition</dt><dd>01 · web</dd></div>
+            <div><dt>Status</dt><dd>Published</dd></div>
+          </dl>
         </header>
 
-        <BlogMarkdown content={post.content} slug={post.slug} />
+        {post.description ? (
+          <section className="blog-article-deck" aria-label="Article summary">
+            <span className="blog-article-deck-label">In brief</span>
+            <p>{post.description}</p>
+            <span className="blog-article-deck-tags">
+              {(post.tags ?? []).join(" · ")}
+            </span>
+          </section>
+        ) : null}
+
+        <BlogMarkdown
+          content={post.content}
+          slug={post.slug}
+          aside={
+            <aside className="blog-article-signals" aria-label="Article details">
+              <p className="blog-rail-label">Record</p>
+              <dl>
+                <div><dt>Reading time</dt><dd>{post.readingMinutes}<small>minutes</small></dd></div>
+                <div><dt>Topics</dt><dd>{post.tags?.length ?? 0}<small>{(post.tags ?? []).join(" · ") || "general"}</small></dd></div>
+                <div><dt>Year</dt><dd>{post.date.slice(0, 4)}<small>field notes</small></dd></div>
+              </dl>
+            </aside>
+          }
+        />
       </article>
 
       <footer className="blog-foot">
         <Link href="/blog">All notes</Link>
-        <Link href="/">Home</Link>
+        <Link href="/">Portfolio</Link>
         <a
           href="https://substack.com/@petercheng2"
           target="_blank"
@@ -79,6 +95,7 @@ export default async function BlogPostPage({ params }: Props) {
           Substack
         </a>
         <a href="mailto:chengzhongquan0630@gmail.com">Email</a>
+        <span className="blog-foot-mark">End · {post.slug}</span>
       </footer>
     </main>
   )

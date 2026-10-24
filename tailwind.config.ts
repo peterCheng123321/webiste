@@ -21,6 +21,7 @@ const config = {
     extend: {
       fontFamily: {
         sans: [
+          "Aptos",
           "var(--font-sans)",
           "Inter",
           "system-ui",
