@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Glass material comparison, not chosen</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #efefef;
+      --ink: #171717;
+      --muted: #595959;
+      --line: #d4d4d4;
+      --card: #f7f7f7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --page: #0d0d0d;
+        --ink: #ffffff;
+        --muted: #b8b8b8;
+        --line: #343434;
+        --card: #141414;
+      }
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --ink: #ffffff;
+      --muted: #b8b8b8;
+      --line: #343434;
+      --card: #141414;
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --page: #efefef;
+      --ink: #171717;
+      --muted: #595959;
+      --line: #d4d4d4;
+      --card: #f7f7f7;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--page);
+      color: var(--ink);
+      font-family: system-ui, sans-serif;
+    }
+    #card {
+      width: 1120px;
+      padding: 28px 28px 24px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .kicker, .summary, .note, figcaption, .ratios {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .kicker { margin-bottom: 6px; }
+    .summary { margin-top: 8px; max-width: 62em; color: var(--ink); }
+    .note { margin-top: 6px; }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 18px;
+    }
+    figure { margin: 0; }
+    figcaption { margin-bottom: 8px; }
+    figcaption strong {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .stage {
+      position: relative;
+      height: 220px;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .field {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .half {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 600;
+      letter-spacing: -0.04em;
+    }
+    .half.white {
+      background: #ffffff;
+      color: #171717;
+      background-image: repeating-linear-gradient(
+        180deg,
+        transparent 0 9px,
+        rgba(0, 0, 0, 0.16) 9px 11px
+      );
+    }
+    .half.black {
+      background: #000000;
+      color: #ffffff;
+      background-image: repeating-linear-gradient(
+        180deg,
+        transparent 0 9px,
+        rgba(255, 255, 255, 0.2) 9px 11px
+      );
+    }
+    .chip {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 252px;
+      height: 132px;
+      transform: translate(-50%, -50%);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+    .dim, .pane, .rim {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+    }
+    .dim { z-index: 1; }
+    .pane { z-index: 2; }
+    .rim {
+      z-index: 3;
+      padding: var(--rim-width, 1px);
+      background: conic-gradient(
+        from 210deg,
+        rgba(255, 255, 255, var(--rim-alpha, 0.5)),
+        rgba(255, 255, 255, 0.06) 110deg,
+        rgba(0, 0, 0, var(--rim-shade, 0.12)) 190deg,
+        rgba(255, 255, 255, 0.1) 280deg,
+        rgba(255, 255, 255, var(--rim-alpha, 0.5))
+      );
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      mask-composite: exclude;
+    }
+    .words {
+      position: relative;
+      z-index: 4;
+      height: 100%;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .words strong {
+      font-size: 16px;
+      line-height: 20px;
+      font-weight: 600;
+    }
+    .words span {
+      font-size: 14px;
+      line-height: 18px;
+      font-weight: 400;
+    }
+    .ratios {
+      margin-top: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+    .ratios p { margin: 0; }
+    .pass { color: var(--ink); }
+    .fail { color: var(--ink); font-weight: 600; }
+    svg.defs { position: absolute; width: 0; height: 0; }
+    @media (prefers-reduced-transparency: reduce) {
+      .pane {
+        background: var(--solid-plate) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: none !important;
+        border: 1px solid var(--solid-border) !important;
+      }
+      .rim, .dim { display: none !important; }
+      .chip { box-shadow: none !important; }
+      .words { color: var(--solid-text) !important; }
+      .words span { color: var(--solid-secondary) !important; }
+    }
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .pane {
+        background: var(--solid-plate);
+        border: 1px solid var(--solid-border);
+        backdrop-filter: none;
+        box-shadow: none;
+      }
+      .rim, .dim { display: none; }
+      .chip { box-shadow: none; }
+      .words { color: var(--solid-text); }
+      .words span { color: var(--solid-secondary); }
+    }
+  </style>
+</head>
+<body>
+  <svg class="defs" aria-hidden="true">
+    <filter id="lg" color-interpolation-filters="sRGB" primitiveUnits="userSpaceOnUse" x="-8" y="-8" width="268" height="148">
+      <feImage id="lg-map" href="rim-map.png" result="map" x="0" y="0" width="252" height="132" preserveAspectRatio="none"></feImage>
+      <feDisplacementMap id="lg-disp" in="SourceGraphic" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
+    </filter>
+  </svg>
+  <article id="card">
+    <p class="kicker">Group 1 · Glass material · not chosen</p>
+    <h1 id="name">Regular frost</h1>
+    <p class="summary" id="summary"></p>
+    <p class="note">The sample shape is the same on every option. It is not a radius, a nav, or a panel. Blur is not counted in the contrast numbers.</p>
+    <div class="row">
+      <figure>
+        <figcaption><strong>Full material</strong><span id="engine">This browser</span></figcaption>
+        <div class="stage" data-mode="full"></div>
+      </figure>
+      <figure>
+        <figcaption><strong>No SVG lens</strong><span>Safari and Firefox path</span></figcaption>
+        <div class="stage" data-mode="nolens"></div>
+      </figure>
+      <figure>
+        <figcaption><strong>Solid plate</strong><span>Reduced transparency, or no backdrop-filter</span></figcaption>
+        <div class="stage" data-mode="solid"></div>
+      </figure>
+    </div>
+    <div class="ratios" id="ratios"></div>
+  </article>
+  <script>
+    const OPTIONS = {
+      regular: {
+        name: "Regular frost",
+        summary: "Thicker tint, 20px blur, a quiet edge. No refraction.",
+        light: spec({
+          fill: [255, 255, 255], a: 0.86, blur: 20, saturate: 1.12, scale: 0, dim: 0,
+          text: [23, 23, 23], secondary: [89, 89, 89],
+          inset: "inset 0 1px 0 rgba(255,255,255,0.72)",
+          shadow: "0 12px 32px rgba(0,0,0,0.10)",
+          rimWidth: "1px", rimAlpha: 0.62, rimShade: 0.16
+        }),
+        dark: spec({
+          fill: [23, 23, 23], a: 0.88, blur: 20, saturate: 1.05, scale: 0, dim: 0,
+          text: [255, 255, 255], secondary: [184, 184, 184],
+          inset: "inset 0 1px 0 rgba(255,255,255,0.16)",
+          shadow: "0 12px 32px rgba(0,0,0,0.28)",
+          rimWidth: "1px", rimAlpha: 0.4, rimShade: 0.02
+        })
+      },
+      lens: {
+        name: "Thin lens",
+        summary: "Thinner tint and a bright edge. Chromium uses an 8px blur plus a rim bend. Safari and Firefox skip the bend and use a 28px blur.",
+        light: spec({
+          fill: [255, 255, 255], a: 0.38, blur: 28, saturate: 1.4, scale: 16, dim: 0,
+          text: [23, 23, 23], secondary: [89, 89, 89],
+          inset: "inset 0 1px 0 rgba(255,255,255,0.95)",
+          shadow: "0 10px 24px rgba(0,0,0,0.12)",
+          rimWidth: "1.5px", rimAlpha: 0.95, rimShade: 0.22
+        }),
+        dark: spec({
+          fill: [18, 18, 18], a: 0.4, blur: 28, saturate: 1.3, scale: 16, dim: 0,
+          text: [255, 255, 255], secondary: [184, 184, 184],
+          inset: "inset 0 1px 0 rgba(255,255,255,0.28)",
+          shadow: "0 14px 32px rgba(0,0,0,0.35)",
+          rimWidth: "1.5px", rimAlpha: 0.72, rimShade: 0.04
+        })
+      },
+      clear: {
+        name: "Clear dim",
+        summary: "Thin tint, a hard bright edge, and a 35% black dim in light. Chromium adds a small rim bend on an 8px blur. Without the bend, the blur is 12px. Dark has no dim.",
+        light: spec({
+          fill: [255, 255, 255], a: 0.16, blur: 12, saturate: 1.5, scale: 10, dim: 0.35,
+          text: [255, 255, 255], secondary: [242, 242, 242],
+          inset: "inset 0 1px 0 rgba(255,255,255,0.92)",
+          shadow: "0 8px 20px rgba(0,0,0,0.16)",
+          rimWidth: "2px", rimAlpha: 1, rimShade: 0.28
+        }),
+        dark: spec({
+          fill: [255, 255, 255], a: 0.08, blur: 12, saturate: 1.2, scale: 10, dim: 0,
+          text: [255, 255, 255], secondary: [242, 242, 242],
+          inset: "inset 0 1px 0 rgba(255,255,255,0.5)",
+          shadow: "0 10px 24px rgba(0,0,0,0.4)",
+          rimWidth: "2px", rimAlpha: 0.9, rimShade: 0.04
+        })
+      }
+    }
+
+    const SOLID = {
+      light: { plate: "#ffffff", border: "#d4d4d4", text: [23, 23, 23], secondary: [89, 89, 89] },
+      dark: { plate: "#171717", border: "#343434", text: [255, 255, 255], secondary: [184, 184, 184] }
+    }
+
+    function spec(s) {
+      return s
+    }
+
+    function rgba(rgb, a) {
+      return "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + "," + a + ")"
+    }
+
+    function hex(rgb) {
+      return "#" + rgb.map((c) => c.toString(16).padStart(2, "0")).join("")
+    }
+
+    function lin(c) {
+      const s = c / 255
+      return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+    }
+
+    function lum(rgb) {
+      return 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2])
+    }
+
+    function ratio(a, b) {
+      const L1 = lum(a)
+      const L2 = lum(b)
+      const hi = Math.max(L1, L2)
+      const lo = Math.min(L1, L2)
+      return (hi + 0.05) / (lo + 0.05)
+    }
+
+    function composite(fill, a, dim, backdrop) {
+      const dimmed = backdrop.map((c) => c * (1 - dim))
+      return dimmed.map((c, i) => Math.round(fill[i] * a + c * (1 - a)))
+    }
+
+    function mark(value) {
+      const pass = value >= 4.5
+      const text = value.toFixed(2) + ":1 " + (pass ? "pass" : "fail")
+      return '<span class="' + (pass ? "pass" : "fail") + '">' + text + "</span>"
+    }
+
+    function stage(mode) {
+      const root = document.createElement("div")
+      root.className = "stage-inner"
+      root.innerHTML =
+        '<div class="field" aria-hidden="true"><div class="half white">Type</div><div class="half black">Type</div></div>' +
+        '<div class="chip"><div class="dim"></div><div class="pane"></div><div class="rim"></div>' +
+        '<p class="words"><strong>Label</strong><span>Secondary</span></p></div>'
+      return root
+    }
+
+    function paint(node, s, mode) {
+      const chip = node.querySelector(".chip")
+      const pane = node.querySelector(".pane")
+      const rim = node.querySelector(".rim")
+      const dim = node.querySelector(".dim")
+      const words = node.querySelector(".words")
+      chip.style.boxShadow = mode === "solid" ? "none" : s.shadow
+      if (mode === "solid") {
+        const plate = document.documentElement.dataset.scheme === "dark" ? SOLID.dark : SOLID.light
+        pane.style.background = plate.plate
+        pane.style.backdropFilter = "none"
+        pane.style.webkitBackdropFilter = "none"
+        pane.style.boxShadow = "none"
+        pane.style.border = "1px solid " + plate.border
+        rim.style.display = "none"
+        dim.style.display = "none"
+        words.style.color = hex(plate.text)
+        words.querySelector("span").style.color = hex(plate.secondary)
+        return
+      }
+      const frost = "blur(" + s.blur + "px) saturate(" + s.saturate + ")"
+      const lensed = "blur(8px) url(#lg) saturate(" + s.saturate + ")"
+      const filter = mode === "full" && s.scale > 0 ? lensed : frost
+      pane.style.background = rgba(s.fill, s.a)
+      pane.style.backdropFilter = filter
+      pane.style.webkitBackdropFilter = filter
+      pane.style.boxShadow = s.inset
+      pane.style.border = "0"
+      rim.style.display = "block"
+      rim.style.padding = s.rimWidth
+      rim.style.setProperty("--rim-alpha", String(s.rimAlpha))
+      rim.style.setProperty("--rim-shade", String(s.rimShade))
+      if (s.dim > 0) {
+        dim.style.display = "block"
+        dim.style.background = "rgba(0,0,0," + s.dim + ")"
+      } else {
+        dim.style.display = "none"
+      }
+      words.style.color = hex(s.text)
+      words.querySelector("span").style.color = hex(s.secondary)
+    }
+
+    function line(label, s, ink) {
+      const onWhite = composite(s.fill, s.a, s.dim, [255, 255, 255])
+      const onBlack = composite(s.fill, s.a, s.dim, [0, 0, 0])
+      return "<p>" + label + " over white " + mark(ratio(ink, onWhite)) + " · over black " + mark(ratio(ink, onBlack)) + "</p>"
+    }
+
+    const params = new URLSearchParams(location.search)
+    const key = params.get("option") || "regular"
+    const option = OPTIONS[key] || OPTIONS.regular
+    const themeParam = params.get("theme")
+    if (themeParam === "light" || themeParam === "dark") {
+      document.documentElement.dataset.theme = themeParam
+    }
+    const dark = themeParam
+      ? themeParam === "dark"
+      : matchMedia("(prefers-color-scheme: dark)").matches
+    document.documentElement.dataset.scheme = dark ? "dark" : "light"
+    const s = dark ? option.dark : option.light
+
+    document.getElementById("name").textContent = option.name
+    document.getElementById("summary").textContent = option.summary
+
+    const svgOk = CSS.supports("backdrop-filter", "url(#lg)") || CSS.supports("-webkit-backdrop-filter", "url(#lg)")
+    document.getElementById("engine").textContent = s.scale > 0
+      ? (svgOk ? "Chromium: 8px blur and a rim bend" : "This engine ignores the SVG filter, so this column matches the next one")
+      : "No bend. Same as the next column."
+
+    document.querySelectorAll(".stage").forEach((el) => {
+      el.appendChild(stage(el.dataset.mode))
+      paint(el, s, el.dataset.mode)
+    })
+
+    document.getElementById("lg-disp").setAttribute("scale", String(s.scale))
+
+    const plate = dark ? SOLID.dark : SOLID.light
+    const rootStyle = document.documentElement.style
+    rootStyle.setProperty("--solid-plate", plate.plate)
+    rootStyle.setProperty("--solid-border", plate.border)
+    rootStyle.setProperty("--solid-text", hex(plate.text))
+    rootStyle.setProperty("--solid-secondary", hex(plate.secondary))
+    document.getElementById("ratios").innerHTML =
+      "<p>Full material, blur ignored. 4.5:1 is the floor for this label size.</p>" +
+      line("Label", s, s.text) +
+      line("Secondary", s, s.secondary) +
+      "<p>Solid plate: label over the plate " + mark(ratio(plate.text, plate.plate === "#ffffff" ? [255, 255, 255] : [23, 23, 23])) +
+      " · secondary " + mark(ratio(plate.secondary, plate.plate === "#ffffff" ? [255, 255, 255] : [23, 23, 23])) + "</p>"
+
+    window.__glassReady = true
+    window.__glassReport = {
+      option: key,
+      scheme: dark ? "dark" : "light",
+      svgBackdrop: svgOk,
+      ratios: document.getElementById("ratios").innerText
+    }
+  </script>
+</body>
+</html>
