@@ -1,22 +1,34 @@
 # Glass material options
 
-Group 1 only. Nothing here is chosen, and none of it is on the site.
+Paused. Nothing in this file is on the site. No material is chosen.
 
-The sample shape is identical across the four options so it does not decide a radius. Type size, spacing, hero, and motion are not in this comparison. Each capture shows the same label over a split field: white on the left, black on the right, with hairline stripes. Contrast ratios composite the tint on pure white and pure black. Blur is not given credit.
+## Pickup
 
-Open `preview/glass-material/index.html` in a browser. The file follows the system light or dark setting. `?option=regular`, `?option=lens`, `?option=clear`, or `?option=chrome`, and `?theme=light` or `?theme=dark`, are review switches for this file only.
+**Locked today**
 
-Screenshots were taken in Chrome 156 on this machine. Safari and Firefox were not run here. The middle column drops the SVG lens and is the stand-in for those engines. The right column is the solid plate.
+- Glass placement. A glass nav bar on top, and a floating bottom row: the Shanghai clock chip, the AI assistant composer, and a tab that opens PeterOS. The hero, the case study, contact, and the résumé stay solid. On mobile those rows collapse to one dock.
+- The stroked ligature PC mark.
 
-## Placement lock
+**Next decision**
 
-Peter locked where glass sits. The material is still open: Regular frost, Thin lens, Clear dim, or Frost plus Chrome lens.
+The glass material. Four options, compared below. Regular frost is the recommendation. None is chosen.
 
-Glass is the top nav bar, and a floating bottom row with three controls: the Shanghai clock chip, the AI assistant composer, and a tab that opens PeterOS. The hero, the case study, contact, and the résumé stay solid. On a small screen those two glass rows collapse into one dock.
+**Still open after that**
 
-The frames are [light](https://www.figma.com/design/GoGfUPKj7QGkjTUv4nAQp5/?node-id=208-3735) and [dark](https://www.figma.com/design/GoGfUPKj7QGkjTUv4nAQp5/?node-id=208-3946). The current PC mark is not part of this lock. Peter is redesigning it.
+Hero art redrawn from the new mark, the `x:000` `y:000` labels, nav mark size, favicon, the Chinese font for 程钟泉 (Noto Sans SC is the placeholder), page peel style, the assistant answer panel, nav labels, mobile frames, the case study copy, and motion.
 
-This note does not build the nav, the dock, or the pages.
+**Figma**
+
+File `GoGfUPKj7QGkjTUv4nAQp5`.
+
+- [Placement, light](https://www.figma.com/design/GoGfUPKj7QGkjTUv4nAQp5/?node-id=208-3735)
+- [Placement, dark](https://www.figma.com/design/GoGfUPKj7QGkjTUv4nAQp5/?node-id=208-3946)
+- [Mark, 216-6413](https://www.figma.com/design/GoGfUPKj7QGkjTUv4nAQp5/?node-id=216-6413)
+- [Mark, 216-6422](https://www.figma.com/design/GoGfUPKj7QGkjTUv4nAQp5/?node-id=216-6422)
+- [Comparison](https://www.figma.com/design/GoGfUPKj7QGkjTUv4nAQp5/?node-id=218-6239)
+- [Material board](https://www.figma.com/design/GoGfUPKj7QGkjTUv4nAQp5/?node-id=212-4551)
+
+The samples below do not decide a radius. Open `preview/glass-material/index.html`. It follows the system theme. `?option=regular`, `?option=lens`, `?option=clear`, or `?option=chrome`, and `?theme=light` or `?theme=dark`, are review switches for that file. Each capture is the same label over a split field, white on the left and black on the right. Contrast ratios composite the tint on pure white and pure black. Blur is not given credit. Screenshots are from Chrome 156. Safari and Firefox were not run. The middle column drops the SVG lens. The right column is the solid plate.
 
 ## Regular frost
 
@@ -114,9 +126,9 @@ This is a recommendation. It is not applied to a page, a token, or a component.
 
 ## The choice
 
-Pick one material: Regular frost, Thin lens, Clear dim, or Frost plus Chrome lens.
+The next pick is the material: Regular frost, Thin lens, Clear dim, or Frost plus Chrome lens. Regular frost is recommended. None is chosen.
 
-Placement is locked above. Radius, type, the hero, the nav’s shape, panels, and motion stay open. None of the options add rainbow fringes.
+Placement and the stroked ligature PC mark are already locked. Everything in the pickup list after the material stays open. None of the options add rainbow fringes.
 
 ## Sources
 
