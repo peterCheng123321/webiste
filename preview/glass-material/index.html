@@ -296,6 +296,24 @@
           shadow: "0 10px 24px rgba(0,0,0,0.4)",
           rimWidth: "2px", rimAlpha: 0.9, rimShade: 0.04
         })
+      },
+      chrome: {
+        name: "Frost plus Chrome lens",
+        summary: "Regular frost’s tint, with a 6px blur so a rim bend can still show. Chromium adds that bend. Safari and Firefox keep the same tint and blur without it.",
+        light: spec({
+          fill: [255, 255, 255], a: 0.86, blur: 6, saturate: 1.12, scale: 36, dim: 0, keepBlur: true,
+          text: [23, 23, 23], secondary: [89, 89, 89],
+          inset: "inset 0 1px 0 rgba(255,255,255,0.72)",
+          shadow: "0 12px 32px rgba(0,0,0,0.10)",
+          rimWidth: "1px", rimAlpha: 0.62, rimShade: 0.16
+        }),
+        dark: spec({
+          fill: [23, 23, 23], a: 0.88, blur: 6, saturate: 1.05, scale: 36, dim: 0, keepBlur: true,
+          text: [255, 255, 255], secondary: [184, 184, 184],
+          inset: "inset 0 1px 0 rgba(255,255,255,0.16)",
+          shadow: "0 12px 32px rgba(0,0,0,0.28)",
+          rimWidth: "1px", rimAlpha: 0.4, rimShade: 0.02
+        })
       }
     }
 
@@ -375,7 +393,8 @@
         return
       }
       const frost = "blur(" + s.blur + "px) saturate(" + s.saturate + ")"
-      const lensed = "blur(8px) url(#lg) saturate(" + s.saturate + ")"
+      const lensBlur = s.keepBlur ? s.blur : 8
+      const lensed = "blur(" + lensBlur + "px) url(#lg) saturate(" + s.saturate + ")"
       const filter = mode === "full" && s.scale > 0 ? lensed : frost
       pane.style.background = rgba(s.fill, s.a)
       pane.style.backdropFilter = filter
@@ -420,7 +439,9 @@
 
     const svgOk = CSS.supports("backdrop-filter", "url(#lg)") || CSS.supports("-webkit-backdrop-filter", "url(#lg)")
     document.getElementById("engine").textContent = s.scale > 0
-      ? (svgOk ? "Chromium: 8px blur and a rim bend" : "This engine ignores the SVG filter, so this column matches the next one")
+      ? (svgOk
+          ? (s.keepBlur ? "Chromium: the same frost, plus a rim bend" : "Chromium: 8px blur and a rim bend")
+          : "This engine ignores the SVG filter, so this column matches the next one")
       : "No bend. Same as the next column."
 
     document.querySelectorAll(".stage").forEach((el) => {

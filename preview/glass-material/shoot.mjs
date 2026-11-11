@@ -16,9 +16,11 @@ const shots = []
 try {
   const page = await browser.newPage()
   await page.setViewport({ width: 1120, height: 640, deviceScaleFactor: 2 })
-  for (const option of ["regular", "lens", "clear"]) {
+  const names = { regular: "regular-frost", lens: "thin-lens", clear: "clear-dim", chrome: "frost-chrome" }
+  const only = process.env.ONLY ? process.env.ONLY.split(",") : ["regular", "lens", "clear", "chrome"]
+  for (const option of only) {
     for (const theme of ["light", "dark"]) {
-      const file = `glass-${option === "regular" ? "regular-frost" : option === "lens" ? "thin-lens" : "clear-dim"}-${theme}.png`
+      const file = `glass-${names[option]}-${theme}.png`
       const url = "file://" + path.join(root, "preview/glass-material/index.html") + `?option=${option}&theme=${theme}`
       await page.goto(url, { waitUntil: "load" })
       await page.waitForFunction("window.__glassReady === true")
